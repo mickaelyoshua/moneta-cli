@@ -10,7 +10,7 @@ CREATE TABLE credit_cards (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     CONSTRAINT pk_credit_card PRIMARY KEY (id),
-    CONSTRAINT fk_credit_card_account FOREIGN KEY (account_id) REFERENCES accounts (id),
+    CONSTRAINT fk_credit_card_account FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE RESTRICT,
     
     CONSTRAINT chk_positive_credit_limit CHECK (credit_limit >= 0),
     CONSTRAINT chk_billing_day CHECK (billing_day BETWEEN 1 AND 28),

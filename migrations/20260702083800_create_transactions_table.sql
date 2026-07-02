@@ -1,3 +1,5 @@
+CREATE TYPE transaction_status_enum AS ENUM ('pending', 'cleared');
+
 CREATE TABLE transactions (
     id INT GENERATED ALWAYS AS IDENTITY,
     category_id INT NOT NULL,
@@ -6,26 +8,23 @@ CREATE TABLE transactions (
     installment_id INT,
     recurrence_id INT,
     
-    transaction_type VARCHAR(20) NOT NULL,
+    transaction_type transaction_type_enum NOT NULL,
     amount NUMERIC(12, 2) NOT NULL,
     date DATE NOT NULL,
     description VARCHAR(255) NOT NULL,
     installment_number SMALLINT,
-    status VARCHAR(20) NOT NULL DEFAULT 'cleared',
+    status transaction_status_enum NOT NULL DEFAULT 'cleared',
     
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     CONSTRAINT pk_transaction PRIMARY KEY (id),
-    CONSTRAINT fk_transaction_category FOREIGN KEY (category_id) REFERENCES categories (id),
-    CONSTRAINT fk_transaction_account FOREIGN KEY (account_id) REFERENCES accounts (id),
-    CONSTRAINT fk_transaction_credit_card FOREIGN KEY (credit_card_id) REFERENCES credit_cards (id),
-    CONSTRAINT fk_transaction_installment FOREIGN KEY (installment_id) REFERENCES installments (id),
-    CONSTRAINT fk_transaction_recurrence FOREIGN KEY (recurrence_id) REFERENCES recurrences (id),
+    CONSTRAINT fk_transaction_category FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE RESTRICT,
+    CONSTRAINT fk_transaction_account FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE RESTRICT,
+    CONSTRAINT fk_transaction_credit_card FOREIGN KEY (credit_card_id) REFERENCES credit_cards (id) ON DELETE RESTRICT,
+    CONSTRAINT fk_transaction_installment FOREIGN KEY (installment_id) REFERENCES installments (id) ON DELETE RESTRICT,
+    CONSTRAINT fk_transaction_recurrence FOREIGN KEY (recurrence_id) REFERENCES recurrences (id) ON DELETE RESTRICT,
 
-    CONSTRAINT chk_transaction_type CHECK (transaction_type IN ('income', 'expense', 'transfer')),
-    CONSTRAINT chk_transaction_status CHECK (status IN ('pending', 'cleared')),
-    
     CONSTRAINT chk_account_or_card CHECK (
         (account_id IS NOT NULL AND credit_card_id IS NULL) OR 
         (account_id IS NULL AND credit_card_id IS NOT NULL)

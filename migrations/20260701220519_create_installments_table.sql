@@ -8,7 +8,7 @@ CREATE TABLE installments (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     CONSTRAINT pk_installment PRIMARY KEY (id),
-    CONSTRAINT fk_installment_credit_card FOREIGN KEY (credit_card_id) REFERENCES credit_cards (id),
+    CONSTRAINT fk_installment_credit_card FOREIGN KEY (credit_card_id) REFERENCES credit_cards (id) ON DELETE RESTRICT,
     CONSTRAINT chk_positive_total_amount CHECK (total_amount > 0),
     CONSTRAINT chk_positive_installments_count CHECK (installments_count > 0)
 );
