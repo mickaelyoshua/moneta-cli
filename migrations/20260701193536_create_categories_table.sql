@@ -7,5 +7,5 @@ CREATE TABLE categories (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     CONSTRAINT pk_category PRIMARY KEY (id),
-    CONSTRAINT chk_category_type CHECK (category_type IN ('income', 'expense', 'both'))
+    CONSTRAINT chk_category_type CHECK (category_type IN ('income', 'expense'))
 );

@@ -9,5 +9,5 @@ CREATE TABLE accounts (
 
 	CONSTRAINT pk_account PRIMARY KEY (id),
 
-	CONSTRAINT chk_account_type CHECK (account_type IN ('checking', 'savings', 'voucher'))
+	CONSTRAINT chk_account_type CHECK (account_type IN ('checking', 'savings'))
 );
