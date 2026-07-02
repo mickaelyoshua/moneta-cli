@@ -1,0 +1,23 @@
+services:
+  db:
+    container_name: moneta-db
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: moneta
+      POSTGRES_PASSWORD: 101010 # 42
+      POSTGRES_DB: moneta
+    ports:
+      - "5432:5432"
+    volumes:
+      - "pgdata:/var/lib/postgresql/data"
+    networks:
+      - moneta-net
+
+volumes:
+  pgdata:
+
+networks:
+  moneta-net:
+    name: moneta-net
+    driver: bridge
