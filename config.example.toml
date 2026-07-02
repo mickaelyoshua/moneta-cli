@@ -1,0 +1,5 @@
+# URL connection for PostgreSQL
+# database_url = "postgres://usuario:senha@localhost:5432/moneta"
+
+# Optional - Max number of pool connections (Default 10)
+# max_connections = 10
