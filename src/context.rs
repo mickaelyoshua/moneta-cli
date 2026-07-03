@@ -1,10 +1,12 @@
+use crate::db::Db;
+
 pub struct AppContext {
-    pub db: crate::Db,
+    pub db: Db,
     pub json_output: bool,
 }
 
 impl AppContext {
-    pub fn new(db: crate::Db, json_output: bool) -> Self {
+    pub fn new(db: Db, json_output: bool) -> Self {
         Self { db, json_output }
     }
 }
