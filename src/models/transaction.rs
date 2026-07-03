@@ -57,9 +57,9 @@ impl Transaction {
         .bind(account_id)
         .bind(credit_card_id)
         .bind(new_tx.transaction_type)
-        .bind(new_tx.amount.inner())
+        .bind(new_tx.amount.as_decimal())
         .bind(new_tx.date)
-        .bind(new_tx.description.inner())
+        .bind(new_tx.description.as_str())
         .fetch_one(pool)
         .await?;
 

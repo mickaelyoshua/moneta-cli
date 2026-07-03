@@ -9,7 +9,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 pub struct PositiveAmount(Decimal);
 
 impl PositiveAmount {
-    pub fn inner(&self) -> Decimal {
+    pub fn as_decimal(&self) -> Decimal {
         self.0
     }
 }
@@ -59,7 +59,7 @@ impl sqlx::Type<sqlx::Postgres> for PositiveAmount {
 pub struct NonNegativeAmount(Decimal);
 
 impl NonNegativeAmount {
-    pub fn inner(&self) -> Decimal {
+    pub fn as_decimal(&self) -> Decimal {
         self.0
     }
 }
@@ -181,7 +181,7 @@ impl sqlx::Type<sqlx::Postgres> for NonEmptyString {
 }
 
 impl NonEmptyString {
-    pub fn inner(&self) -> &str {
+    pub fn as_str(&self) -> &str {
         &self.0
     }
 }
