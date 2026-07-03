@@ -1,4 +1,18 @@
-use anyhow::Context;
+#[derive(thiserror::Error, Debug)]
+pub enum ConfigError {
+    #[error("DATABASE_URL is mandatory. Define via flag (--database-url), environment variable or at ~/.config/moneta/config.toml")]
+    MissingDatabaseUrl,
+    #[error("Error reading {path:?}: {source}")]
+    Io {
+        path: std::path::PathBuf,
+        source: std::io::Error,
+    },
+    #[error("Error parsing TOML at {path:?}: {source}")]
+    Parse {
+        path: std::path::PathBuf,
+        source: toml::de::Error,
+    },
+}
 use serde::Deserialize;
 use std::fs;
 
@@ -15,14 +29,14 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn load(cli_args: crate::cli::ConfigArgs) -> anyhow::Result<Self> {
+    pub fn load(cli_args: crate::cli::ConfigArgs) -> Result<Self, ConfigError> {
         let config_path = Self::find_config_path();
         let file_config = Self::load_file_config(config_path)?;
 
         let database_url = cli_args
             .database_url
             .or(file_config.database_url)
-            .context("DATABASE_URL is mandatory. Define via flag (--database-url), environment variable or at ~/.config/moneta/config.toml")?;
+            .ok_or(ConfigError::MissingDatabaseUrl)?;
 
         let max_connections = cli_args
             .max_connections
@@ -50,14 +64,15 @@ impl Config {
             .filter(|p| p.exists())
     }
 
-    fn load_file_config(path: Option<std::path::PathBuf>) -> anyhow::Result<FileConfig> {
+    fn load_file_config(path: Option<std::path::PathBuf>) -> Result<FileConfig, ConfigError> {
         let Some(path) = path else {
             return Ok(FileConfig::default());
         };
 
-        let content =
-            fs::read_to_string(&path).with_context(|| format!("Error reading {:?}", path))?;
+        let content = fs::read_to_string(&path)
+            .map_err(|source| ConfigError::Io { path: path.clone(), source })?;
 
-        toml::from_str(&content).with_context(|| format!("Error parsing TOML at {:?}", path))
+        toml::from_str(&content)
+            .map_err(|source| ConfigError::Parse { path, source })
     }
 }

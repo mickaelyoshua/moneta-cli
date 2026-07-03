@@ -6,7 +6,7 @@ use moneta_cli::{
     db::Db,
 };
 
-async fn run() -> anyhow::Result<()> {
+async fn run() -> Result<(), moneta_cli::error::AppError> {
     let cli = Cli::parse();
 
     let config = Config::load(cli.config)?;
