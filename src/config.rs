@@ -16,28 +16,8 @@ pub struct Config {
 
 impl Config {
     pub fn load(cli_args: crate::cli::ConfigArgs) -> anyhow::Result<Self> {
-        let mut file_config = FileConfig::default();
-
-        let local_path = std::path::PathBuf::from("config.toml");
-
-        let global_path = dirs::config_dir().map(|mut p| {
-            p.push("moneta");
-            p.push("config.toml");
-            p
-        });
-
-        let config_path = if local_path.exists() {
-            Some(local_path)
-        } else {
-            global_path.filter(|p| p.exists())
-        };
-
-        if let Some(path) = config_path {
-            let content =
-                fs::read_to_string(&path).with_context(|| format!("Error reading {:?}", path))?;
-            file_config = toml::from_str(&content)
-                .with_context(|| format!("Error parsing TOML at {:?}", path))?;
-        }
+        let config_path = Self::find_config_path();
+        let file_config = Self::load_file_config(config_path)?;
 
         let database_url = cli_args
             .database_url
@@ -53,5 +33,31 @@ impl Config {
             database_url,
             max_connections,
         })
+    }
+
+    fn find_config_path() -> Option<std::path::PathBuf> {
+        let local_path = std::path::PathBuf::from("config.toml");
+        if local_path.exists() {
+            return Some(local_path);
+        }
+
+        dirs::config_dir()
+            .map(|mut p| {
+                p.push("moneta");
+                p.push("config.toml");
+                p
+            })
+            .filter(|p| p.exists())
+    }
+
+    fn load_file_config(path: Option<std::path::PathBuf>) -> anyhow::Result<FileConfig> {
+        let Some(path) = path else {
+            return Ok(FileConfig::default());
+        };
+
+        let content =
+            fs::read_to_string(&path).with_context(|| format!("Error reading {:?}", path))?;
+
+        toml::from_str(&content).with_context(|| format!("Error parsing TOML at {:?}", path))
     }
 }
