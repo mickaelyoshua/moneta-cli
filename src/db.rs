@@ -1,7 +1,7 @@
 use sqlx::{PgPool, postgres::PgPoolOptions};
 
 pub struct Db {
-    pool: PgPool,
+    pub pool: PgPool,
 }
 
 impl Db {

@@ -1,7 +1,7 @@
+use super::types::{NonEmptyString, PositiveAmount};
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 use sqlx::FromRow;
-use chrono::{DateTime, Utc};
-use super::types::{PositiveAmount, NonEmptyString};
 
 #[derive(Debug, Serialize, FromRow)]
 pub struct Installment {

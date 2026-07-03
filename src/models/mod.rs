@@ -1,4 +1,3 @@
-pub mod types;
 pub mod account;
 pub mod category;
 pub mod credit_card;
@@ -6,6 +5,7 @@ pub mod installment;
 pub mod recurrence;
 pub mod tag;
 pub mod transaction;
+pub mod types;
 
 pub use account::Account;
 pub use category::Category;

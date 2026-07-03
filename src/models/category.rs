@@ -1,7 +1,7 @@
+use super::types::{CategoryType, NonEmptyString};
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 use sqlx::FromRow;
-use chrono::{DateTime, Utc};
-use super::types::{CategoryType, NonEmptyString};
 
 #[derive(Debug, Serialize, FromRow)]
 pub struct Category {

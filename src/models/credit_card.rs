@@ -1,7 +1,7 @@
+use super::types::{NonEmptyString, NonNegativeAmount};
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 use sqlx::FromRow;
-use chrono::{DateTime, Utc};
-use super::types::{NonNegativeAmount, NonEmptyString};
 
 #[derive(Debug, Serialize, FromRow)]
 pub struct CreditCard {

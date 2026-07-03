@@ -1,7 +1,7 @@
+use super::types::NonEmptyString;
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 use sqlx::FromRow;
-use chrono::{DateTime, Utc};
-use super::types::NonEmptyString;
 
 #[derive(Debug, Serialize, FromRow)]
 pub struct Tag {

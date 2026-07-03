@@ -14,6 +14,19 @@ impl PositiveAmount {
     }
 }
 
+impl std::str::FromStr for PositiveAmount {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let dec = Decimal::from_str(s).map_err(|_| "Formato numérico inválido")?;
+        if dec > Decimal::ZERO {
+            Ok(PositiveAmount(dec))
+        } else {
+            Err("Valor deve ser maior que zero")
+        }
+    }
+}
+
 impl<'de> Deserialize<'de> for PositiveAmount {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -78,7 +91,9 @@ impl sqlx::Type<sqlx::Postgres> for NonNegativeAmount {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum, sqlx::Type,
+)]
 #[sqlx(type_name = "transaction_type_enum", rename_all = "lowercase")]
 pub enum TransactionType {
     Income,
@@ -169,4 +184,24 @@ impl NonEmptyString {
     pub fn inner(&self) -> &str {
         &self.0
     }
+}
+
+impl std::str::FromStr for NonEmptyString {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let trimmed = s.trim();
+        if trimmed.is_empty() {
+            Err("A string não pode ser vazia ou conter apenas espaços")
+        } else {
+            Ok(NonEmptyString(trimmed.to_string()))
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum TransactionSource {
+    Account { account_id: i32 },
+    CreditCard { credit_card_id: i32 },
 }
