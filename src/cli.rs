@@ -1,5 +1,7 @@
 use clap::{Parser, Subcommand};
 
+use crate::commands::transaction::TransactionCmd;
+
 #[derive(clap::Args, Debug)]
 pub struct ConfigArgs {
     #[arg(short, long, env = "DATABASE_URL")]
@@ -24,7 +26,9 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Command {
-    // Stubs para os argumentos futuros
-    Transaction,
+    Transaction {
+        #[command(subcommand)]
+        action: TransactionCmd,
+    },
     Category,
 }

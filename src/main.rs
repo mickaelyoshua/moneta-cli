@@ -1,14 +1,22 @@
 use clap::Parser;
-use moneta_cli::{cli::Cli, config::Config, context::AppContext, db::Db};
+use moneta_cli::{
+    cli::{Cli, Command},
+    config::Config,
+    context::AppContext,
+    db::Db,
+};
 
 async fn run() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     let config = Config::load(cli.config)?;
     let db = Db::new(&config.database_url, config.max_connections).await?;
-    let _ctx = AppContext::new(db, cli.json);
+    let ctx = AppContext::new(db, cli.json);
 
     match cli.command {
+        Command::Transaction { action } => {
+            action.handle(&ctx).await?;
+        }
         _ => todo!("a ser implementado"),
     }
     Ok(())
