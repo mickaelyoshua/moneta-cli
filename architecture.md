@@ -1,74 +1,74 @@
 # Moneta CLI Architecture
 
 ## Level 1: System Context (C4)
+
 ```mermaid
-C4Context
-  title Level 1: Context
+flowchart TD
+  User(("User\n(Manages finances)"))
+  AI(("AI Agent\n(Parses receipts)"))
+  Moneta["Moneta CLI\n(Core application)"]
+  DB[("PostgreSQL\n(Central storage)")]
 
-  Person(user, "User", "Manages finances")
-  System(moneta, "Moneta CLI", "Core application")
-  SystemDb(db, "PostgreSQL", "Central storage")
-  System_Ext(ai, "AI Agent", "Parses receipts, feeds CLI")
-
-  Rel(user, moneta, "Runs commands", "Terminal")
-  Rel(ai, moneta, "Automates entry", "CLI/JSON")
-  Rel(moneta, db, "Reads/Writes", "TCP/SQL")
+  User -- "Runs commands\n[Terminal]" --> Moneta
+  AI -- "Automates entry\n[CLI/JSON]" --> Moneta
+  Moneta -- "Reads/Writes\n[TCP/SQL]" --> DB
 ```
 
 ## Level 2: Containers (C4)
+
 ```mermaid
-C4Container
-  title Level 2: Containers
+flowchart TD
+  User(("User / AI\n(Terminal)"))
 
-  Person(user, "User/AI", "Terminal")
-  
-  System_Boundary(moneta, "Moneta System") {
-    Container(cli, "CLI Interface", "Rust/Clap", "Args parsing, output formatting")
-    Container(core, "Domain Logic", "Rust", "Business rules")
-    Container(db_layer, "Data Access", "Rust/sqlx", "Async DB operations")
-  }
-  
-  SystemDb(db, "PostgreSQL", "Database", "Unified tables")
+  subgraph Moneta["Moneta System"]
+    direction TB
+    CLI["CLI Interface\n(Rust/Clap)"]
+    Core["Domain Logic\n(Rust)"]
+    DBLayer["Data Access\n(Rust/sqlx)"]
+  end
 
-  Rel(user, cli, "Calls")
-  Rel(cli, core, "Routes")
-  Rel(core, db_layer, "Uses")
-  Rel(db_layer, db, "Queries", "SQL")
+  DB[("PostgreSQL\n(Database)")]
+
+  User -- "Calls" --> CLI
+  CLI -- "Routes" --> Core
+  Core -- "Uses" --> DBLayer
+  DBLayer -- "Queries\n[SQL]" --> DB
 ```
 
 ## Level 3: Components (C4)
+
 ```mermaid
-C4Component
-  title Level 3: Components
+flowchart TD
+  CLI["CLI Parser\n(Clap)"]
 
-  Container(cli, "CLI Parser", "Clap", "Entrypoint")
-  
-  Container_Boundary(core, "Core (Rust)") {
-    Component(cmd, "Command Handlers", "Maps CLI to Domain")
-    Component(tx, "Transactions", "Unified ledger logic")
-    Component(entities, "Entities", "Accounts, Categories, Tags")
-  }
-  
-  Container(db_layer, "Repositories", "sqlx", "DB traits implementations")
+  subgraph Core["Core (Rust)"]
+    direction TB
+    Cmd["Command Handlers"]
+    Tx["Transactions Logic"]
+    Entities["Entities\n(Accounts, Categories, Tags)"]
+  end
 
-  Rel(cli, cmd, "Invokes")
-  Rel(cmd, tx, "Uses")
-  Rel(cmd, entities, "Uses")
-  Rel(tx, db_layer, "Persists")
-  Rel(entities, db_layer, "Persists")
+  DBLayer["Repositories\n(sqlx)"]
+
+  CLI -- "Invokes" --> Cmd
+  Cmd -- "Uses" --> Tx
+  Cmd -- "Uses" --> Entities
+  Tx -- "Persists" --> DBLayer
+  Entities -- "Persists" --> DBLayer
 ```
 
 ## Level 4: Domain Classes (UML)
+
 ```mermaid
 classDiagram
   direction BT
-  
+
   class Transaction
   class Installment
   class Recurrence
   class Category
   class Tag
-  
+
   Installment "1" *-- "N" Transaction : Groups
   Recurrence "1" *-- "N" Transaction : Generates
   Category "1" o-- "N" Transaction : Classifies
@@ -76,10 +76,11 @@ classDiagram
 ```
 
 ## Level 4: Execution Flow (UML)
+
 ```mermaid
 sequenceDiagram
   title Execution Flow (Create Entity)
-  
+
   actor User
   participant CLI as CLI (Clap)
   participant Core as Domain
