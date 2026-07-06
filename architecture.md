@@ -1,45 +1,97 @@
-# Arquitetura Moneta CLI (C4 Model)
+# Moneta CLI Architecture
 
-Este documento descreve a arquitetura do projeto utilizando diagramas estruturados no formato C4 Model via Mermaid.
-
-## Nível 1: Contexto do Sistema (System Context)
-
-Mostra o panorama geral: o usuário, o sistema Moneta e agentes externos.
-
+## Level 1: System Context (C4)
 ```mermaid
 C4Context
-  title Moneta CLI - System Context (Nível 1)
+  title Level 1: Context
 
-  Person(user, "Usuário Finaçneiro", "Pessoa que deseja registrar e organizar finanças pessoais")
-  System(moneta, "Moneta CLI", "App de linha de comando (Rust) para gerenciamento financeiro unificado")
-  SystemDb(postgres, "PostgreSQL", "Banco de dados central de registros")
-  System_Ext(ai_agent, "Agente IA (Futuro)", "Lê PDFs/CSVs e alimenta a CLI via comandos estruturados")
+  Person(user, "User", "Manages finances")
+  System(moneta, "Moneta CLI", "Core application")
+  SystemDb(db, "PostgreSQL", "Central storage")
+  System_Ext(ai, "AI Agent", "Parses receipts, feeds CLI")
 
-  Rel(user, moneta, "Executa comandos no terminal", "CLI")
-  Rel(ai_agent, moneta, "Automatiza inserção de dados", "CLI/JSON")
-  Rel(moneta, postgres, "Armazena transações, categorias e tags", "TCP/SQL")
+  Rel(user, moneta, "Runs commands", "Terminal")
+  Rel(ai, moneta, "Automates entry", "CLI/JSON")
+  Rel(moneta, db, "Reads/Writes", "TCP/SQL")
 ```
 
-## Nível 2: Containers
-
-Aplica um zoom no sistema "Moneta CLI" para mostrar os blocos de construção técnicos.
-
+## Level 2: Containers (C4)
 ```mermaid
 C4Container
-  title Moneta CLI - Containers (Nível 2)
+  title Level 2: Containers
 
-  Person(user, "Usuário / Agente IA", "Via Terminal")
+  Person(user, "User/AI", "Terminal")
   
-  System_Boundary(moneta_sys, "Sistema Moneta") {
-    Container(cli, "Interface CLI", "Rust / clap + serde", "Recebe comandos, valida argumentos, formata saídas (texto/JSON)")
-    Container(core, "Regras de Domínio", "Rust", "Processa transações unificadas, faturas (installments) e recorrências")
-    Container(db_layer, "Camada de Dados", "Rust / sqlx / tokio", "Executa queries assíncronas no banco")
+  System_Boundary(moneta, "Moneta System") {
+    Container(cli, "CLI Interface", "Rust/Clap", "Args parsing, output formatting")
+    Container(core, "Domain Logic", "Rust", "Business rules")
+    Container(db_layer, "Data Access", "Rust/sqlx", "Async DB operations")
   }
   
-  SystemDb(postgres, "Banco de Dados", "PostgreSQL", "Tabela unificada 'transactions', 'categories', 'tags'")
+  SystemDb(db, "PostgreSQL", "Database", "Unified tables")
 
-  Rel(user, cli, "Dispara comandos")
-  Rel(cli, core, "Despacha rotas de comando")
-  Rel(core, db_layer, "Solicita persistência")
-  Rel(db_layer, postgres, "Lê/Escreve via conexão async", "SQL/TCP")
+  Rel(user, cli, "Calls")
+  Rel(cli, core, "Routes")
+  Rel(core, db_layer, "Uses")
+  Rel(db_layer, db, "Queries", "SQL")
+```
+
+## Level 3: Components (C4)
+```mermaid
+C4Component
+  title Level 3: Components
+
+  Container(cli, "CLI Parser", "Clap", "Entrypoint")
+  
+  Container_Boundary(core, "Core (Rust)") {
+    Component(cmd, "Command Handlers", "Maps CLI to Domain")
+    Component(tx, "Transactions", "Unified ledger logic")
+    Component(entities, "Entities", "Accounts, Categories, Tags")
+  }
+  
+  Container(db_layer, "Repositories", "sqlx", "DB traits implementations")
+
+  Rel(cli, cmd, "Invokes")
+  Rel(cmd, tx, "Uses")
+  Rel(cmd, entities, "Uses")
+  Rel(tx, db_layer, "Persists")
+  Rel(entities, db_layer, "Persists")
+```
+
+## Level 4: Domain Classes (UML)
+```mermaid
+classDiagram
+  direction BT
+  
+  class Transaction
+  class Installment
+  class Recurrence
+  class Category
+  class Tag
+  
+  Installment "1" *-- "N" Transaction : Groups
+  Recurrence "1" *-- "N" Transaction : Generates
+  Category "1" o-- "N" Transaction : Classifies
+  Tag "N" o-- "N" Transaction : Tags
+```
+
+## Level 4: Execution Flow (UML)
+```mermaid
+sequenceDiagram
+  title Execution Flow (Create Entity)
+  
+  actor User
+  participant CLI as CLI (Clap)
+  participant Core as Domain
+  participant Repo as DB (sqlx)
+  participant PG as PostgreSQL
+
+  User->>CLI: Run command
+  CLI->>Core: Parse & Route
+  Core->>Repo: Execute DB operation
+  Repo->>PG: SQL Query
+  PG-->>Repo: Result
+  Repo-->>Core: Mapped Struct
+  Core-->>CLI: Format Data
+  CLI-->>User: STDOUT (Text/JSON)
 ```
