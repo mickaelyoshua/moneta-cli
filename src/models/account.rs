@@ -13,3 +13,11 @@ pub struct Account {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
+
+#[derive(Debug)]
+pub struct NewAccount {
+    pub name: NonEmptyString,
+    pub account_type: AccountType,
+    pub has_debit_card: bool,
+    pub active: bool,
+}

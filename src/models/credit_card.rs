@@ -15,3 +15,13 @@ pub struct CreditCard {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
+
+#[derive(Debug)]
+pub struct NewCreditCard {
+    pub account_id: i32,
+    pub name: NonEmptyString,
+    pub credit_limit: NonNegativeAmount,
+    pub billing_day: super::types::DayOfMonth,
+    pub due_day: super::types::DayOfMonth,
+    pub active: bool,
+}

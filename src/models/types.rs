@@ -4,6 +4,30 @@ use serde::{Deserialize, Deserializer, Serialize};
 // Parse, don't Validade
 // Creates this boilerplate, but I find it worth the work
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[serde(transparent)]
+#[sqlx(transparent)]
+pub struct DayOfMonth(i16);
+
+impl std::str::FromStr for DayOfMonth {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let val: i16 = s.parse().map_err(|_| "Número inválido")?;
+        if (1..=28).contains(&val) {
+            Ok(DayOfMonth(val))
+        } else {
+            Err("Dia deve ser entre 1 e 28 (por segurança de fevereiro)")
+        }
+    }
+}
+
+impl DayOfMonth {
+    pub fn as_i16(&self) -> i16 {
+        self.0
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, sqlx::Type)]
 #[serde(transparent)]
 #[sqlx(transparent)]
@@ -42,8 +66,6 @@ impl<'de> Deserialize<'de> for PositiveAmount {
     }
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, sqlx::Type)]
 #[serde(transparent)]
 #[sqlx(transparent)]
@@ -69,7 +91,18 @@ impl<'de> Deserialize<'de> for NonNegativeAmount {
     }
 }
 
+impl std::str::FromStr for NonNegativeAmount {
+    type Err = &'static str;
 
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let dec = Decimal::from_str(s).map_err(|_| "Formato numérico inválido")?;
+        if dec >= Decimal::ZERO {
+            Ok(NonNegativeAmount(dec))
+        } else {
+            Err("Valor não pode ser negativo")
+        }
+    }
+}
 
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum, sqlx::Type,
@@ -88,7 +121,9 @@ pub enum TransactionStatus {
     Cleared,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, clap::ValueEnum,
+)]
 #[sqlx(type_name = "account_type_enum", rename_all = "lowercase")]
 pub enum AccountType {
     Checking,
@@ -104,15 +139,15 @@ pub enum RecurrenceFrequency {
     Yearly,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum, sqlx::Type)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum, sqlx::Type,
+)]
 #[sqlx(type_name = "category_type_enum", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum CategoryType {
     Income,
     Expense,
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, sqlx::Type)]
 #[serde(transparent)]
@@ -164,7 +199,6 @@ pub enum TransactionSource {
 mod tests {
     use super::*;
     use std::str::FromStr;
-    use rust_decimal::Decimal;
 
     #[test]
     fn test_non_empty_string_valid() {
@@ -188,5 +222,33 @@ mod tests {
         assert!(PositiveAmount::from_str("0").is_err());
         assert!(PositiveAmount::from_str("-100.50").is_err());
         assert!(PositiveAmount::from_str("abc").is_err());
+    }
+
+    #[test]
+    fn test_non_negative_amount_valid() {
+        assert!(NonNegativeAmount::from_str("0").is_ok());
+        assert!(NonNegativeAmount::from_str("100.50").is_ok());
+    }
+
+    #[test]
+    fn test_non_negative_amount_invalid() {
+        assert!(NonNegativeAmount::from_str("-100.50").is_err());
+        assert!(NonNegativeAmount::from_str("abc").is_err());
+    }
+
+    #[test]
+    fn test_day_of_month_valid() {
+        assert!(DayOfMonth::from_str("1").is_ok());
+        assert!(DayOfMonth::from_str("15").is_ok());
+        assert!(DayOfMonth::from_str("28").is_ok());
+    }
+
+    #[test]
+    fn test_day_of_month_invalid() {
+        assert!(DayOfMonth::from_str("0").is_err());
+        assert!(DayOfMonth::from_str("29").is_err());
+        assert!(DayOfMonth::from_str("31").is_err());
+        assert!(DayOfMonth::from_str("-5").is_err());
+        assert!(DayOfMonth::from_str("abc").is_err());
     }
 }
