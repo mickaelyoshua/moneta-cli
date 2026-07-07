@@ -28,7 +28,17 @@
       {
         "ordinal": 2,
         "name": "category_type: _",
-        "type_info": "Varchar",
+        "type_info": {
+          "Custom": {
+            "name": "category_type_enum",
+            "kind": {
+              "Enum": [
+                "income",
+                "expense"
+              ]
+            }
+          }
+        },
         "origin": {
           "Table": {
             "table": "categories",
@@ -73,7 +83,17 @@
     "parameters": {
       "Left": [
         "Varchar",
-        "Varchar",
+        {
+          "Custom": {
+            "name": "category_type_enum",
+            "kind": {
+              "Enum": [
+                "income",
+                "expense"
+              ]
+            }
+          }
+        },
         "Bool"
       ]
     },

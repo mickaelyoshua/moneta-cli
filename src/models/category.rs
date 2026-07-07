@@ -22,11 +22,6 @@ pub struct NewCategory {
 
 impl Category {
     pub async fn insert(pool: &sqlx::PgPool, new_ctg: NewCategory) -> Result<Self, sqlx::Error> {
-        let category_type_str = match new_ctg.category_type {
-            CategoryType::Income => "income",
-            CategoryType::Expense => "expense",
-        };
-
         sqlx::query_as!(
             Self,
             r#"
@@ -35,7 +30,7 @@ impl Category {
             RETURNING id, name as "name: _", category_type as "category_type: _", active, created_at, updated_at
             "#,
             new_ctg.name.as_str(),
-            category_type_str,
+            new_ctg.category_type as _,
             new_ctg.active,
         )
         .fetch_one(pool)
