@@ -19,3 +19,46 @@ pub struct NewCategory {
     pub category_type: CategoryType,
     pub active: bool,
 }
+
+impl Category {
+    pub async fn insert(pool: &sqlx::PgPool, new_ctg: NewCategory) -> Result<Self, sqlx::Error> {
+        let category_type_str = match new_ctg.category_type {
+            CategoryType::Income => "income",
+            CategoryType::Expense => "expense",
+        };
+
+        sqlx::query_as!(
+            Self,
+            r#"
+            INSERT INTO categories (name, category_type, active)
+            VALUES ($1, $2, $3)
+            RETURNING id, name as "name: _", category_type as "category_type: _", active, created_at, updated_at
+            "#,
+            new_ctg.name.as_str(),
+            category_type_str,
+            new_ctg.active,
+        )
+        .fetch_one(pool)
+        .await
+    }
+
+    pub async fn find_all(
+        pool: &sqlx::PgPool,
+        limit: Option<usize>,
+    ) -> Result<Vec<Self>, sqlx::Error> {
+        let limit = limit.unwrap_or(100) as i64;
+
+        sqlx::query_as!(
+            Self,
+            r#"
+            SELECT id, name as "name: _", category_type as "category_type: _", active, created_at, updated_at
+            FROM categories
+            ORDER BY created_at DESC
+            LIMIT $1
+            "#,
+            limit
+        )
+        .fetch_all(pool)
+        .await
+    }
+}

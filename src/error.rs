@@ -8,4 +8,6 @@ pub enum AppError {
     Config(#[from] crate::config::ConfigError),
     #[error("Transaction error: {0}")]
     Transaction(#[from] crate::commands::transaction::TransactionError),
+    #[error("Category error: {0}")]
+    Category(#[from] crate::commands::category::CategoryError),
 }
