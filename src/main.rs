@@ -17,8 +17,11 @@ async fn run() -> Result<(), moneta_cli::error::AppError> {
         Command::Transaction { action } => {
             action.handle(&ctx).await?;
         }
-        _ => todo!("a ser implementado"),
+        Command::Category { action } => {
+            action.handle(&ctx).await?;
+        }
     }
+
     Ok(())
 }
 
