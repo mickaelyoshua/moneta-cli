@@ -1,6 +1,9 @@
 use clap::{Parser, Subcommand};
 
-use crate::commands::{category::CategoryCmd, transaction::TransactionCmd};
+use crate::commands::{
+    account::AccountCmd, category::CategoryCmd, credit_card::CreditCardCmd,
+    transaction::TransactionCmd,
+};
 
 #[derive(clap::Args, Debug)]
 pub struct ConfigArgs {
@@ -33,5 +36,13 @@ pub enum Command {
     Category {
         #[command(subcommand)]
         action: CategoryCmd,
+    },
+    Account {
+        #[command(subcommand)]
+        action: AccountCmd,
+    },
+    CreditCard {
+        #[command(subcommand)]
+        action: CreditCardCmd,
     },
 }

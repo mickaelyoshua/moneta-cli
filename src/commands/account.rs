@@ -1,0 +1,61 @@
+use clap::Subcommand;
+
+use crate::models::{AccountType, NonEmptyString};
+
+#[derive(thiserror::Error, Debug)]
+pub enum AccountError {
+    #[error("Database error: {0}")]
+    Database(#[from] sqlx::Error),
+    #[error("Serialization error: {0}")]
+    Json(#[from] serde_json::Error),
+}
+
+#[derive(Debug, Subcommand)]
+pub enum AccountCmd {
+    Add(AddAccountArgs),
+    List {
+        #[arg(long, short)]
+        limit: Option<usize>,
+    },
+}
+
+#[derive(Debug, clap::Args)]
+pub struct AddAccountArgs {
+    #[arg(short, long)]
+    pub name: NonEmptyString,
+
+    #[arg(short, long)]
+    pub account_type: AccountType,
+
+    #[arg(long)]
+    pub no_debit_card: bool,
+
+    #[arg(long)]
+    pub inactive: bool,
+}
+
+impl TryFrom<AddAccountArgs> for crate::models::account::NewAccount {
+    type Error = AccountError;
+
+    fn try_from(args: AddAccountArgs) -> Result<Self, Self::Error> {
+        Ok(Self {
+            name: args.name,
+            account_type: args.account_type,
+            has_debit_card: !args.no_debit_card,
+            active: !args.inactive,
+        })
+    }
+}
+
+impl AccountCmd {
+    pub async fn handle(
+        self,
+        ctx: &crate::context::AppContext,
+    ) -> Result<(), crate::error::AppError> {
+        match self {
+            Self::Add(args) => crate::handlers::account::add(ctx, args).await?,
+            Self::List { limit } => crate::handlers::account::list(ctx, limit).await?,
+        }
+        Ok(())
+    }
+}

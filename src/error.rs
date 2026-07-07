@@ -10,4 +10,8 @@ pub enum AppError {
     Transaction(#[from] crate::commands::transaction::TransactionError),
     #[error("Category error: {0}")]
     Category(#[from] crate::commands::category::CategoryError),
+    #[error("Account error: {0}")]
+    Account(#[from] crate::commands::account::AccountError),
+    #[error("Credit Card error: {0}")]
+    CreditCard(#[from] crate::commands::credit_card::CreditCardError),
 }
