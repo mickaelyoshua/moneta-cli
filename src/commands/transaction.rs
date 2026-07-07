@@ -85,3 +85,46 @@ impl TransactionCmd {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str::FromStr;
+
+    #[test]
+    fn test_add_transaction_missing_source() {
+        let args = AddTransactionArgs {
+            account_id: None,
+            credit_card_id: None,
+            category_id: 1,
+            transaction_type: TransactionType::Expense,
+            amount: crate::models::types::PositiveAmount::from_str("10.0").unwrap(),
+            date: None,
+            description: crate::models::types::NonEmptyString::from_str("Test").unwrap(),
+        };
+
+        let result = crate::models::transaction::NewTransaction::try_from(args);
+        assert!(matches!(result, Err(TransactionError::MissingSource)));
+    }
+
+    #[test]
+    fn test_add_transaction_with_account() {
+        let args = AddTransactionArgs {
+            account_id: Some(1),
+            credit_card_id: None,
+            category_id: 1,
+            transaction_type: TransactionType::Expense,
+            amount: crate::models::types::PositiveAmount::from_str("10.0").unwrap(),
+            date: None,
+            description: crate::models::types::NonEmptyString::from_str("Test").unwrap(),
+        };
+
+        let result = crate::models::transaction::NewTransaction::try_from(args);
+        assert!(result.is_ok());
+        let tx = result.unwrap();
+        assert_eq!(
+            tx.source,
+            crate::models::types::TransactionSource::Account { account_id: 1 }
+        );
+    }
+}

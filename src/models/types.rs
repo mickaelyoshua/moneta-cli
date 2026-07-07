@@ -4,8 +4,9 @@ use serde::{Deserialize, Deserializer, Serialize};
 // Parse, don't Validade
 // Creates this boilerplate, but I find it worth the work
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(transparent)] // Avoid serde to create an array when parsing this tuple to JSON
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, sqlx::Type)]
+#[serde(transparent)]
+#[sqlx(transparent)]
 pub struct PositiveAmount(Decimal);
 
 impl PositiveAmount {
@@ -41,21 +42,11 @@ impl<'de> Deserialize<'de> for PositiveAmount {
     }
 }
 
-impl sqlx::Decode<'_, sqlx::Postgres> for PositiveAmount {
-    fn decode(value: sqlx::postgres::PgValueRef<'_>) -> Result<Self, sqlx::error::BoxDynError> {
-        let dec = <Decimal as sqlx::Decode<sqlx::Postgres>>::decode(value)?;
-        Ok(PositiveAmount(dec))
-    }
-}
 
-impl sqlx::Type<sqlx::Postgres> for PositiveAmount {
-    fn type_info() -> sqlx::postgres::PgTypeInfo {
-        <Decimal as sqlx::Type<sqlx::Postgres>>::type_info()
-    }
-}
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, sqlx::Type)]
 #[serde(transparent)]
+#[sqlx(transparent)]
 pub struct NonNegativeAmount(Decimal);
 
 impl NonNegativeAmount {
@@ -78,18 +69,7 @@ impl<'de> Deserialize<'de> for NonNegativeAmount {
     }
 }
 
-impl sqlx::Decode<'_, sqlx::Postgres> for NonNegativeAmount {
-    fn decode(value: sqlx::postgres::PgValueRef<'_>) -> Result<Self, sqlx::error::BoxDynError> {
-        let dec = <Decimal as sqlx::Decode<sqlx::Postgres>>::decode(value)?;
-        Ok(NonNegativeAmount(dec))
-    }
-}
 
-impl sqlx::Type<sqlx::Postgres> for NonNegativeAmount {
-    fn type_info() -> sqlx::postgres::PgTypeInfo {
-        <Decimal as sqlx::Type<sqlx::Postgres>>::type_info()
-    }
-}
 
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum, sqlx::Type,
@@ -124,32 +104,19 @@ pub enum RecurrenceFrequency {
     Yearly,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum, sqlx::Type)]
+#[sqlx(type_name = "varchar", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum CategoryType {
     Income,
     Expense,
 }
 
-impl sqlx::Type<sqlx::Postgres> for CategoryType {
-    fn type_info() -> sqlx::postgres::PgTypeInfo {
-        <String as sqlx::Type<sqlx::Postgres>>::type_info()
-    }
-}
 
-impl sqlx::Decode<'_, sqlx::Postgres> for CategoryType {
-    fn decode(value: sqlx::postgres::PgValueRef<'_>) -> Result<Self, sqlx::error::BoxDynError> {
-        let s = <String as sqlx::Decode<sqlx::Postgres>>::decode(value)?;
-        match s.as_str() {
-            "income" => Ok(CategoryType::Income),
-            "expense" => Ok(CategoryType::Expense),
-            _ => Err("Invalid category type".into()),
-        }
-    }
-}
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, sqlx::Type)]
 #[serde(transparent)]
+#[sqlx(transparent)]
 pub struct NonEmptyString(String);
 
 impl<'de> Deserialize<'de> for NonEmptyString {
@@ -164,19 +131,6 @@ impl<'de> Deserialize<'de> for NonEmptyString {
         } else {
             Ok(NonEmptyString(trimmed.to_string()))
         }
-    }
-}
-
-impl sqlx::Decode<'_, sqlx::Postgres> for NonEmptyString {
-    fn decode(value: sqlx::postgres::PgValueRef<'_>) -> Result<Self, sqlx::error::BoxDynError> {
-        let s = <String as sqlx::Decode<sqlx::Postgres>>::decode(value)?;
-        Ok(NonEmptyString(s))
-    }
-}
-
-impl sqlx::Type<sqlx::Postgres> for NonEmptyString {
-    fn type_info() -> sqlx::postgres::PgTypeInfo {
-        <String as sqlx::Type<sqlx::Postgres>>::type_info()
     }
 }
 
@@ -204,4 +158,35 @@ impl std::str::FromStr for NonEmptyString {
 pub enum TransactionSource {
     Account { account_id: i32 },
     CreditCard { credit_card_id: i32 },
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str::FromStr;
+    use rust_decimal::Decimal;
+
+    #[test]
+    fn test_non_empty_string_valid() {
+        assert!(NonEmptyString::from_str("valid").is_ok());
+        assert!(NonEmptyString::from_str("  valid  ").is_ok()); // Trims or accepts? Current implementation might just check empty, but let's see.
+    }
+
+    #[test]
+    fn test_non_empty_string_invalid() {
+        assert!(NonEmptyString::from_str("").is_err());
+        assert!(NonEmptyString::from_str("   ").is_err());
+    }
+
+    #[test]
+    fn test_positive_amount_valid() {
+        assert!(PositiveAmount::from_str("100.50").is_ok());
+    }
+
+    #[test]
+    fn test_positive_amount_invalid() {
+        assert!(PositiveAmount::from_str("0").is_err());
+        assert!(PositiveAmount::from_str("-100.50").is_err());
+        assert!(PositiveAmount::from_str("abc").is_err());
+    }
 }
