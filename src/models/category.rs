@@ -12,3 +12,10 @@ pub struct Category {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
+
+#[derive(Debug)]
+pub struct NewCategory {
+    pub name: NonEmptyString,
+    pub category_type: CategoryType,
+    pub active: bool,
+}

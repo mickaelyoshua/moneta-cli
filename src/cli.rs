@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 
-use crate::commands::transaction::TransactionCmd;
+use crate::commands::{category::CategoryCmd, transaction::TransactionCmd};
 
 #[derive(clap::Args, Debug)]
 pub struct ConfigArgs {
@@ -30,5 +30,8 @@ pub enum Command {
         #[command(subcommand)]
         action: TransactionCmd,
     },
-    Category,
+    Category {
+        #[command(subcommand)]
+        action: CategoryCmd,
+    },
 }
