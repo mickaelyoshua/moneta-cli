@@ -37,6 +37,8 @@ pub enum InvoiceCmd {
         month: i16,
         #[arg(short, long)]
         year: i16,
+        #[arg(short, long)]
+        account_id: i32,
     },
 }
 
@@ -64,7 +66,10 @@ impl InvoiceCmd {
                 credit_card_id,
                 month,
                 year,
-            } => crate::handlers::invoice::pay(ctx, credit_card_id, month, year).await?,
+                account_id,
+            } => {
+                crate::handlers::invoice::pay(ctx, credit_card_id, month, year, account_id).await?
+            }
         }
         Ok(())
     }

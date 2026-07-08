@@ -43,8 +43,9 @@ pub async fn pay(
     credit_card_id: i32,
     month: i16,
     year: i16,
+    account_id: i32,
 ) -> Result<(), InvoiceError> {
-    let invoice = Invoice::pay(&ctx.db.pool, credit_card_id, month, year).await?;
+    let invoice = Invoice::pay(&ctx.db.pool, credit_card_id, month, year, account_id).await?;
 
     crate::handlers::render_success(ctx, &invoice);
 

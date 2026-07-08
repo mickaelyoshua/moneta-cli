@@ -54,7 +54,7 @@ impl Invoice {
 
         let day = transaction_date.day() as i16;
         let mut invoice_date = transaction_date;
-        if day > card.billing_day {
+        if day >= card.billing_day {
             invoice_date = invoice_date + chrono::Months::new(1);
         }
 
@@ -108,7 +108,7 @@ impl Invoice {
         sqlx::query_as::<_, Self>(
             r#"
             UPDATE invoices 
-            SET status = 'closed', updated_at = NOW() 
+            SET status = 'closed'
             WHERE credit_card_id = $1 AND month = $2 AND year = $3 AND status = 'open'
             RETURNING *
             "#,
@@ -125,11 +125,14 @@ impl Invoice {
         credit_card_id: i32,
         month: i16,
         year: i16,
+        account_id: i32,
     ) -> Result<Self, sqlx::Error> {
-        sqlx::query_as::<_, Self>(
+        let mut tx = pool.begin().await?;
+
+        let invoice = sqlx::query_as::<_, Self>(
             r#"
             UPDATE invoices 
-            SET status = 'paid', updated_at = NOW() 
+            SET status = 'paid'
             WHERE credit_card_id = $1 AND month = $2 AND year = $3 AND status = 'closed'
             RETURNING *
             "#,
@@ -137,8 +140,26 @@ impl Invoice {
         .bind(credit_card_id)
         .bind(month)
         .bind(year)
-        .fetch_one(pool)
-        .await
+        .fetch_one(&mut *tx)
+        .await?;
+
+        sqlx::query!(
+            r#"
+            INSERT INTO transactions (
+                account_id, transaction_type, amount, date, description, status
+            )
+            VALUES ($1, 'transfer'::transaction_type_enum, $2, CURRENT_DATE, $3, 'cleared'::transaction_status_enum)
+            "#,
+            account_id,
+            invoice.total_amount,
+            format!("Pagamento Fatura {}/{}", month, year)
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(invoice)
     }
 
     pub async fn reopen(
@@ -150,7 +171,7 @@ impl Invoice {
         sqlx::query_as::<_, Self>(
             r#"
             UPDATE invoices 
-            SET status = 'open', updated_at = NOW() 
+            SET status = 'open'
             WHERE credit_card_id = $1 AND month = $2 AND year = $3 AND status = 'closed'
             RETURNING *
             "#,
