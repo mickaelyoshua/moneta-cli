@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT billing_day, due_day FROM credit_cards WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "billing_day",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "credit_cards",
+            "name": "billing_day"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "due_day",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "credit_cards",
+            "name": "due_day"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "949560c11bea9c8a88054c65db25f12ac18c78f8d5c7cd254259547abf03fd7c"
+}

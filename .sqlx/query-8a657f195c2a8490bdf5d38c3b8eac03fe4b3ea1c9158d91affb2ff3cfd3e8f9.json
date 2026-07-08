@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO transactions (\n                account_id, transaction_type, amount, date, description, status\n            )\n            VALUES ($1, 'transfer'::transaction_type_enum, $2, CURRENT_DATE, $3, 'cleared'::transaction_status_enum)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Numeric",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8a657f195c2a8490bdf5d38c3b8eac03fe4b3ea1c9158d91affb2ff3cfd3e8f9"
+}
