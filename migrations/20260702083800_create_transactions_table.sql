@@ -5,6 +5,7 @@ CREATE TABLE transactions (
     category_id INT NOT NULL,
     account_id INT,
     credit_card_id INT,
+    invoice_id INT,
     installment_id INT,
     recurrence_id INT,
     
@@ -22,6 +23,7 @@ CREATE TABLE transactions (
     CONSTRAINT fk_transaction_category FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE RESTRICT,
     CONSTRAINT fk_transaction_account FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE RESTRICT,
     CONSTRAINT fk_transaction_credit_card FOREIGN KEY (credit_card_id) REFERENCES credit_cards (id) ON DELETE RESTRICT,
+    CONSTRAINT fk_transaction_invoice FOREIGN KEY (invoice_id) REFERENCES invoices (id) ON DELETE RESTRICT,
     CONSTRAINT fk_transaction_installment FOREIGN KEY (installment_id) REFERENCES installments (id) ON DELETE RESTRICT,
     CONSTRAINT fk_transaction_recurrence FOREIGN KEY (recurrence_id) REFERENCES recurrences (id) ON DELETE RESTRICT,
 
