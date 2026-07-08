@@ -1,5 +1,6 @@
 use super::types::{AccountType, NonEmptyString};
 use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
@@ -20,6 +21,12 @@ pub struct NewAccount {
     pub account_type: AccountType,
     pub has_debit_card: bool,
     pub active: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AccountBalance {
+    pub account_id: i32,
+    pub balance: Decimal,
 }
 
 impl Account {
@@ -54,5 +61,31 @@ impl Account {
         .bind(limit)
         .fetch_all(pool)
         .await
+    }
+
+    pub async fn balance(
+        pool: &sqlx::PgPool,
+        account_id: i32,
+    ) -> Result<AccountBalance, sqlx::Error> {
+        let row = sqlx::query!(
+            r#"
+            SELECT COALESCE(SUM(
+                CASE 
+                    WHEN transaction_type = 'income' THEN amount
+                    ELSE -amount
+                END
+            ), 0) AS balance
+            FROM transactions
+            WHERE account_id = $1 AND status = 'cleared'
+            "#,
+            account_id
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(AccountBalance {
+            account_id,
+            balance: row.balance.unwrap_or(Decimal::ZERO),
+        })
     }
 }

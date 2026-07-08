@@ -17,6 +17,10 @@ pub enum AccountCmd {
         #[arg(long, short)]
         limit: Option<usize>,
     },
+    Balance {
+        #[arg(short, long)]
+        id: i32,
+    },
 }
 
 #[derive(Debug, clap::Args)]
@@ -55,6 +59,7 @@ impl AccountCmd {
         match self {
             Self::Add(args) => crate::handlers::account::add(ctx, args).await?,
             Self::List { limit } => crate::handlers::account::list(ctx, limit).await?,
+            Self::Balance { id } => crate::handlers::account::balance(ctx, id).await?,
         }
         Ok(())
     }

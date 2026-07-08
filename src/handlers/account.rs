@@ -20,3 +20,11 @@ pub async fn list(ctx: &AppContext, limit: Option<usize>) -> Result<(), AccountE
 
     Ok(())
 }
+
+pub async fn balance(ctx: &AppContext, account_id: i32) -> Result<(), AccountError> {
+    let balance = Account::balance(&ctx.db.pool, account_id).await?;
+
+    crate::handlers::render_success(ctx, &balance);
+
+    Ok(())
+}
