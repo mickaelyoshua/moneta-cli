@@ -122,6 +122,17 @@ pub enum TransactionStatus {
 }
 
 #[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum, sqlx::Type,
+)]
+#[sqlx(type_name = "invoice_status_enum", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum InvoiceStatus {
+    Open,
+    Closed,
+    Paid,
+}
+
+#[derive(
     Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, clap::ValueEnum,
 )]
 #[sqlx(type_name = "account_type_enum", rename_all = "lowercase")]

@@ -14,4 +14,6 @@ pub enum AppError {
     Account(#[from] crate::commands::account::AccountError),
     #[error("Credit Card error: {0}")]
     CreditCard(#[from] crate::commands::credit_card::CreditCardError),
+    #[error("Invoice error: {0}")]
+    Invoice(#[from] crate::commands::invoice::InvoiceError),
 }

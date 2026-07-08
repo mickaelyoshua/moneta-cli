@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 
 use crate::commands::{
     account::AccountCmd, category::CategoryCmd, credit_card::CreditCardCmd,
-    transaction::TransactionCmd,
+    transaction::TransactionCmd, invoice::InvoiceCmd,
 };
 
 #[derive(clap::Args, Debug)]
@@ -44,5 +44,9 @@ pub enum Command {
     CreditCard {
         #[command(subcommand)]
         action: CreditCardCmd,
+    },
+    Invoice {
+        #[command(subcommand)]
+        action: InvoiceCmd,
     },
 }

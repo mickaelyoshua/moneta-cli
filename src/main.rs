@@ -26,6 +26,9 @@ async fn run() -> Result<(), moneta_cli::error::AppError> {
         Command::CreditCard { action } => {
             action.handle(&ctx).await?;
         }
+        Command::Invoice { action } => {
+            action.handle(&ctx).await?;
+        }
     }
 
     Ok(())

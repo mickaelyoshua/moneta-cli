@@ -12,6 +12,7 @@ pub struct Transaction {
     #[serde(flatten)]
     pub source: TransactionSource,
 
+    pub invoice_id: Option<i32>,
     pub installment_id: Option<i32>,
     pub recurrence_id: Option<i32>,
 
@@ -38,24 +39,55 @@ pub struct NewTransaction {
 
 impl Transaction {
     pub async fn insert(pool: &sqlx::PgPool, new_tx: NewTransaction) -> Result<Self, sqlx::Error> {
-        let (account_id, credit_card_id) = match new_tx.source {
-            TransactionSource::Account { account_id } => (Some(account_id), None),
-            TransactionSource::CreditCard { credit_card_id } => (None, Some(credit_card_id)),
+        let mut account_id = None;
+        let mut credit_card_id = None;
+        let mut invoice_id = None;
+
+        match new_tx.source {
+            TransactionSource::Account { account_id: id } => {
+                account_id = Some(id);
+            }
+            TransactionSource::CreditCard { credit_card_id: id } => {
+                credit_card_id = Some(id);
+                // Registrar: Find or create invoice for this transaction
+                let invoice =
+                    crate::models::invoice::Invoice::find_or_create_for_date(pool, id, new_tx.date)
+                        .await?;
+
+                if invoice.status != crate::models::types::InvoiceStatus::Open {
+                    return Err(sqlx::Error::Protocol(
+                        "Não é possível adicionar transação a uma fatura fechada ou paga."
+                            .to_string(),
+                    ));
+                }
+
+                invoice_id = Some(invoice.id);
+
+                // update total_amount
+                sqlx::query!(
+                    "UPDATE invoices SET total_amount = total_amount + $1 WHERE id = $2",
+                    new_tx.amount.as_decimal(),
+                    invoice.id
+                )
+                .execute(pool)
+                .await?;
+            }
         };
 
         let row = sqlx::query_as::<_, Transaction>(
             r#"
             INSERT INTO transactions (
-                category_id, account_id, credit_card_id, 
+                category_id, account_id, credit_card_id, invoice_id,
                 transaction_type, amount, date, description
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
             "#,
         )
         .bind(new_tx.category_id)
         .bind(account_id)
         .bind(credit_card_id)
+        .bind(invoice_id)
         .bind(new_tx.transaction_type)
         .bind(new_tx.amount.as_decimal())
         .bind(new_tx.date)
@@ -108,6 +140,7 @@ impl<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> for Transaction {
             id: row.try_get("id")?,
             category_id: row.try_get("category_id")?,
             source,
+            invoice_id: row.try_get("invoice_id")?,
             installment_id: row.try_get("installment_id")?,
             recurrence_id: row.try_get("recurrence_id")?,
             transaction_type: row.try_get("transaction_type")?,
