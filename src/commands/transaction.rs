@@ -66,7 +66,7 @@ impl TryFrom<AddTransactionArgs> for crate::models::transaction::NewTransaction 
         };
 
         Ok(Self {
-            category_id: args.category_id,
+            category_id: Some(args.category_id),
             source,
             transaction_type: args.transaction_type,
             amount: args.amount,

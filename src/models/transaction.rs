@@ -7,7 +7,7 @@ use serde::Serialize;
 #[derive(Debug, Serialize)]
 pub struct Transaction {
     pub id: i32,
-    pub category_id: i32,
+    pub category_id: Option<i32>,
 
     #[serde(flatten)]
     pub source: TransactionSource,
@@ -29,7 +29,7 @@ pub struct Transaction {
 
 #[derive(Debug)]
 pub struct NewTransaction {
-    pub category_id: i32,
+    pub category_id: Option<i32>,
     pub source: TransactionSource,
     pub transaction_type: TransactionType,
     pub amount: PositiveAmount,

@@ -2,7 +2,7 @@ CREATE TYPE transaction_status_enum AS ENUM ('pending', 'cleared');
 
 CREATE TABLE transactions (
     id INT GENERATED ALWAYS AS IDENTITY,
-    category_id INT NOT NULL,
+    category_id INT,
     account_id INT,
     credit_card_id INT,
     invoice_id INT,
@@ -32,7 +32,8 @@ CREATE TABLE transactions (
         (account_id IS NULL AND credit_card_id IS NOT NULL)
     ),
 
-    CONSTRAINT chk_positive_amount CHECK (amount > 0)
+    CONSTRAINT chk_positive_amount CHECK (amount > 0),
+    CONSTRAINT chk_category_presence CHECK (category_id IS NOT NULL OR transaction_type = 'transfer')
 );
 
 CREATE INDEX idx_transactions_date ON transactions (date);

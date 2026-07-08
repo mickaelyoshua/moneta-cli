@@ -26,7 +26,7 @@ async fn test_transaction_insert_and_find_all(pool: PgPool) {
     .get("id");
 
     let new_tx = NewTransaction {
-        category_id: ctg_id,
+        category_id: Some(ctg_id),
         source: TransactionSource::Account { account_id },
         transaction_type: TransactionType::Expense,
         amount: PositiveAmount::from_str("15.50").unwrap(),
@@ -40,7 +40,7 @@ async fn test_transaction_insert_and_find_all(pool: PgPool) {
         .expect("Failed to insert transaction");
 
     // Assertion - Verify mapping to database shape
-    assert_eq!(tx.category_id, ctg_id);
+    assert_eq!(tx.category_id, Some(ctg_id));
     assert_eq!(tx.source, TransactionSource::Account { account_id });
     assert_eq!(tx.transaction_type, TransactionType::Expense);
     assert_eq!(tx.amount.as_decimal(), Decimal::new(1550, 2));
