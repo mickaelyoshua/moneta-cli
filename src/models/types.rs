@@ -28,7 +28,7 @@ impl DayOfMonth {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, sqlx::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, sqlx::Type)]
 #[serde(transparent)]
 #[sqlx(transparent)]
 pub struct PositiveAmount(Decimal);
@@ -66,7 +66,7 @@ impl<'de> Deserialize<'de> for PositiveAmount {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, sqlx::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, sqlx::Type)]
 #[serde(transparent)]
 #[sqlx(transparent)]
 pub struct NonNegativeAmount(Decimal);

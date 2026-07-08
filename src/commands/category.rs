@@ -17,6 +17,11 @@ pub enum CategoryCmd {
         #[arg(long, short)]
         limit: Option<usize>,
     },
+    Update(UpdateCategoryArgs),
+    Delete {
+        #[arg(short, long)]
+        id: i32,
+    },
 }
 
 #[derive(Debug, clap::Args)]
@@ -29,6 +34,21 @@ pub struct AddCategoryArgs {
 
     #[arg(long)]
     pub inactive: bool,
+}
+
+#[derive(Debug, clap::Args)]
+pub struct UpdateCategoryArgs {
+    #[arg(short, long)]
+    pub id: i32,
+
+    #[arg(short, long)]
+    pub name: Option<NonEmptyString>,
+
+    #[arg(short, long)]
+    pub category_type: Option<CategoryType>,
+
+    #[arg(long)]
+    pub inactive: Option<bool>,
 }
 
 impl TryFrom<AddCategoryArgs> for crate::models::category::NewCategory {
@@ -44,10 +64,15 @@ impl TryFrom<AddCategoryArgs> for crate::models::category::NewCategory {
 }
 
 impl CategoryCmd {
-    pub async fn handle(self, ctx: &crate::context::AppContext) -> Result<(), crate::error::AppError> {
+    pub async fn handle(
+        self,
+        ctx: &crate::context::AppContext,
+    ) -> Result<(), crate::error::AppError> {
         match self {
             Self::Add(args) => crate::handlers::category::add(ctx, args).await?,
             Self::List { limit } => crate::handlers::category::list(ctx, limit).await?,
+            Self::Update(args) => crate::handlers::category::update(ctx, args).await?,
+            Self::Delete { id } => crate::handlers::category::delete(ctx, id).await?,
         }
         Ok(())
     }

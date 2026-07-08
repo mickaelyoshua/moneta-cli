@@ -20,6 +20,11 @@ pub enum CreditCardCmd {
         #[arg(long, short)]
         limit: Option<usize>,
     },
+    Update(UpdateCreditCardArgs),
+    Delete {
+        #[arg(short, long)]
+        id: i32,
+    },
 }
 
 #[derive(Debug, clap::Args)]
@@ -41,6 +46,27 @@ pub struct AddCreditCardArgs {
 
     #[arg(long)]
     pub inactive: bool,
+}
+
+#[derive(Debug, clap::Args)]
+pub struct UpdateCreditCardArgs {
+    #[arg(short, long)]
+    pub id: i32,
+
+    #[arg(short, long)]
+    pub name: Option<NonEmptyString>,
+
+    #[arg(short = 'l', long)]
+    pub credit_limit: Option<NonNegativeAmount>,
+
+    #[arg(short, long)]
+    pub billing_day: Option<DayOfMonth>,
+
+    #[arg(short, long)]
+    pub due_day: Option<DayOfMonth>,
+
+    #[arg(long)]
+    pub inactive: Option<bool>,
 }
 
 impl TryFrom<AddCreditCardArgs> for NewCreditCard {
@@ -66,6 +92,8 @@ impl CreditCardCmd {
         match self {
             Self::Add(args) => crate::handlers::credit_card::add(ctx, args).await?,
             Self::List { limit } => crate::handlers::credit_card::list(ctx, limit).await?,
+            Self::Update(args) => crate::handlers::credit_card::update(ctx, args).await?,
+            Self::Delete { id } => crate::handlers::credit_card::delete(ctx, id).await?,
         }
         Ok(())
     }

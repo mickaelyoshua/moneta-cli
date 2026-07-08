@@ -88,4 +88,48 @@ impl Account {
             balance: row.balance.unwrap_or(Decimal::ZERO),
         })
     }
+
+    pub async fn find_by_id(pool: &sqlx::PgPool, id: i32) -> Result<Self, sqlx::Error> {
+        sqlx::query_as::<_, Self>(
+            r#"
+            SELECT * FROM accounts
+            WHERE id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(pool)
+        .await
+    }
+
+    pub async fn update(&self, pool: &sqlx::PgPool) -> Result<Self, sqlx::Error> {
+        sqlx::query_as::<_, Self>(
+            r#"
+            UPDATE accounts
+            SET name = $1, account_type = $2, has_debit_card = $3, active = $4, updated_at = NOW()
+            WHERE id = $5
+            RETURNING *
+            "#,
+        )
+        .bind(self.name.as_str())
+        .bind(self.account_type)
+        .bind(self.has_debit_card)
+        .bind(self.active)
+        .bind(self.id)
+        .fetch_one(pool)
+        .await
+    }
+
+    pub async fn delete(pool: &sqlx::PgPool, id: i32) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query!(
+            r#"
+            DELETE FROM accounts
+            WHERE id = $1
+            "#,
+            id
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
 }

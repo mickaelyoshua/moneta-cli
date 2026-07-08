@@ -40,4 +40,20 @@ async fn test_category_crud(pool: PgPool) {
     let names: Vec<&str> = all.iter().map(|c| c.name.as_str()).collect();
     assert!(names.contains(&"Test Income"));
     assert!(names.contains(&"Test Expense"));
+
+    // Update
+    let mut to_update = Category::find_by_id(&pool, ctg1.id).await.expect("Should find by id");
+    to_update.name = NonEmptyString::from_str("Updated Income").unwrap();
+    to_update.active = false;
+    let updated = to_update.update(&pool).await.expect("Failed to update");
+    
+    assert_eq!(updated.name.as_str(), "Updated Income");
+    assert!(!updated.active);
+
+    // Delete
+    let deleted = Category::delete(&pool, ctg2.id).await.expect("Failed to delete");
+    assert!(deleted);
+
+    let all_after_delete = Category::find_all(&pool, None).await.expect("Failed to find_all");
+    assert_eq!(all_after_delete.len(), 1);
 }

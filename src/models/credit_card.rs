@@ -61,4 +61,50 @@ impl CreditCard {
         .fetch_all(pool)
         .await
     }
+
+    pub async fn find_by_id(pool: &sqlx::PgPool, id: i32) -> Result<Self, sqlx::Error> {
+        sqlx::query_as::<_, Self>(
+            r#"
+            SELECT * FROM credit_cards
+            WHERE id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(pool)
+        .await
+    }
+
+    pub async fn update(&self, pool: &sqlx::PgPool) -> Result<Self, sqlx::Error> {
+        sqlx::query_as::<_, Self>(
+            r#"
+            UPDATE credit_cards
+            SET account_id = $1, name = $2, credit_limit = $3, billing_day = $4, due_day = $5, active = $6, updated_at = NOW()
+            WHERE id = $7
+            RETURNING *
+            "#,
+        )
+        .bind(self.account_id)
+        .bind(self.name.as_str())
+        .bind(self.credit_limit)
+        .bind(self.billing_day)
+        .bind(self.due_day)
+        .bind(self.active)
+        .bind(self.id)
+        .fetch_one(pool)
+        .await
+    }
+
+    pub async fn delete(pool: &sqlx::PgPool, id: i32) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query!(
+            r#"
+            DELETE FROM credit_cards
+            WHERE id = $1
+            "#,
+            id
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
 }

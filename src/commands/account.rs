@@ -21,6 +21,11 @@ pub enum AccountCmd {
         #[arg(short, long)]
         id: i32,
     },
+    Update(UpdateAccountArgs),
+    Delete {
+        #[arg(short, long)]
+        id: i32,
+    },
 }
 
 #[derive(Debug, clap::Args)]
@@ -36,6 +41,24 @@ pub struct AddAccountArgs {
 
     #[arg(long)]
     pub inactive: bool,
+}
+
+#[derive(Debug, clap::Args)]
+pub struct UpdateAccountArgs {
+    #[arg(short, long)]
+    pub id: i32,
+
+    #[arg(short, long)]
+    pub name: Option<NonEmptyString>,
+
+    #[arg(short, long)]
+    pub account_type: Option<AccountType>,
+
+    #[arg(long)]
+    pub no_debit_card: Option<bool>,
+
+    #[arg(long)]
+    pub inactive: Option<bool>,
 }
 
 impl TryFrom<AddAccountArgs> for crate::models::account::NewAccount {
@@ -60,6 +83,8 @@ impl AccountCmd {
             Self::Add(args) => crate::handlers::account::add(ctx, args).await?,
             Self::List { limit } => crate::handlers::account::list(ctx, limit).await?,
             Self::Balance { id } => crate::handlers::account::balance(ctx, id).await?,
+            Self::Update(args) => crate::handlers::account::update(ctx, args).await?,
+            Self::Delete { id } => crate::handlers::account::delete(ctx, id).await?,
         }
         Ok(())
     }
