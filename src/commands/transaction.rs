@@ -18,6 +18,15 @@ pub enum TransactionCmd {
         #[arg(short, long)]
         limit: Option<usize>,
     },
+    Show {
+        #[arg(short, long)]
+        id: i32,
+    },
+    Update(UpdateTransactionArgs),
+    Delete {
+        #[arg(short, long)]
+        id: i32,
+    },
 }
 
 #[derive(Debug, clap::Args)]
@@ -49,6 +58,37 @@ pub struct AddTransactionArgs {
     pub description: NonEmptyString,
 }
 
+#[derive(Debug, clap::Args)]
+#[command(group(
+    clap::ArgGroup::new("source")
+        .args(["account_id", "credit_card_id"])
+))]
+pub struct UpdateTransactionArgs {
+    #[arg(short, long)]
+    pub id: i32,
+
+    #[arg(long, group = "source")]
+    pub account_id: Option<i32>,
+
+    #[arg(long, group = "source")]
+    pub credit_card_id: Option<i32>,
+
+    #[arg(short, long)]
+    pub category_id: Option<i32>,
+
+    #[arg(short, long)]
+    pub transaction_type: Option<TransactionType>,
+
+    #[arg(short, long)]
+    pub amount: Option<PositiveAmount>,
+
+    #[arg(short, long)]
+    pub date: Option<chrono::NaiveDate>,
+
+    #[arg(long)]
+    pub description: Option<NonEmptyString>,
+}
+
 impl TryFrom<AddTransactionArgs> for crate::models::transaction::NewTransaction {
     type Error = TransactionError;
 
@@ -72,6 +112,8 @@ impl TryFrom<AddTransactionArgs> for crate::models::transaction::NewTransaction 
             amount: args.amount,
             date,
             description: args.description,
+            installment_id: None,
+            installment_number: None,
         })
     }
 }
@@ -81,6 +123,9 @@ impl TransactionCmd {
         match self {
             Self::Add(args) => crate::handlers::transaction::add(ctx, args).await?,
             Self::List { limit } => crate::handlers::transaction::list(ctx, limit).await?,
+            Self::Show { id } => crate::handlers::transaction::show(ctx, id).await?,
+            Self::Update(args) => crate::handlers::transaction::update(ctx, args).await?,
+            Self::Delete { id } => crate::handlers::transaction::delete(ctx, id).await?,
         }
         Ok(())
     }

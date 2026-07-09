@@ -3,6 +3,7 @@ use super::types::{
 };
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::Serialize;
+use sqlx::Connection;
 
 #[derive(Debug, Serialize)]
 pub struct Transaction {
@@ -35,10 +36,23 @@ pub struct NewTransaction {
     pub amount: PositiveAmount,
     pub date: NaiveDate,
     pub description: NonEmptyString,
+    pub installment_id: Option<i32>,
+    pub installment_number: Option<i16>,
+}
+
+#[derive(Debug)]
+pub struct UpdateTransactionPayload {
+    pub account_id: Option<i32>,
+    pub credit_card_id: Option<i32>,
+    pub category_id: Option<i32>,
+    pub transaction_type: Option<TransactionType>,
+    pub amount: Option<PositiveAmount>,
+    pub date: Option<chrono::NaiveDate>,
+    pub description: Option<NonEmptyString>,
 }
 
 impl Transaction {
-    pub async fn insert(pool: &sqlx::PgPool, new_tx: NewTransaction) -> Result<Self, sqlx::Error> {
+    pub async fn insert(conn: &mut sqlx::PgConnection, new_tx: NewTransaction) -> Result<Self, sqlx::Error> {
         let mut account_id = None;
         let mut credit_card_id = None;
         let mut invoice_id = None;
@@ -51,7 +65,7 @@ impl Transaction {
                 credit_card_id = Some(id);
                 // Registrar: Find or create invoice for this transaction
                 let invoice =
-                    crate::models::invoice::Invoice::find_or_create_for_date(pool, id, new_tx.date)
+                    crate::models::invoice::Invoice::find_or_create_for_date(&mut *conn, id, new_tx.date)
                         .await?;
 
                 if invoice.status != crate::models::types::InvoiceStatus::Open {
@@ -62,15 +76,6 @@ impl Transaction {
                 }
 
                 invoice_id = Some(invoice.id);
-
-                // update total_amount
-                sqlx::query!(
-                    "UPDATE invoices SET total_amount = total_amount + $1 WHERE id = $2",
-                    new_tx.amount.as_decimal(),
-                    invoice.id
-                )
-                .execute(pool)
-                .await?;
             }
         };
 
@@ -78,9 +83,9 @@ impl Transaction {
             r#"
             INSERT INTO transactions (
                 category_id, account_id, credit_card_id, invoice_id,
-                transaction_type, amount, date, description
+                transaction_type, amount, date, description, installment_id, installment_number
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
             "#,
         )
@@ -92,7 +97,9 @@ impl Transaction {
         .bind(new_tx.amount.as_decimal())
         .bind(new_tx.date)
         .bind(new_tx.description.as_str())
-        .fetch_one(pool)
+        .bind(new_tx.installment_id)
+        .bind(new_tx.installment_number)
+        .fetch_one(conn)
         .await?;
 
         Ok(row)
@@ -116,6 +123,172 @@ impl Transaction {
         .await?;
 
         Ok(rows)
+    }
+
+    pub async fn find_by_id(
+        pool: &sqlx::PgPool,
+        id: i32,
+    ) -> Result<Self, sqlx::Error> {
+        sqlx::query_as::<_, Self>(
+            r#"
+            SELECT * FROM transactions WHERE id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(pool)
+        .await
+    }
+
+    pub async fn delete(
+        pool: &sqlx::PgPool,
+        id: i32,
+    ) -> Result<(), sqlx::Error> {
+        let mut tx = pool.begin().await?;
+
+        let old_tx = sqlx::query_as::<_, Self>(
+            "SELECT * FROM transactions WHERE id = $1 FOR UPDATE"
+        )
+        .bind(id)
+        .fetch_optional(&mut *tx)
+        .await?;
+
+        let old_tx = match old_tx {
+            Some(t) => t,
+            None => return Err(sqlx::Error::RowNotFound),
+        };
+
+        if old_tx.installment_id.is_some() {
+            return Err(sqlx::Error::Protocol(
+                "Esta transação pertence a um parcelamento. Utilize 'moneta installment delete' para apagá-la.".into()
+            ));
+        }
+
+        if let Some(inv_id) = old_tx.invoice_id {
+            let status = sqlx::query_scalar::<_, crate::models::types::InvoiceStatus>(
+                "SELECT status FROM invoices WHERE id = $1"
+            )
+            .bind(inv_id)
+            .fetch_one(&mut *tx)
+            .await?;
+
+            if status != crate::models::types::InvoiceStatus::Open {
+                return Err(sqlx::Error::Protocol(
+                    "Não é possível deletar transação de uma fatura fechada ou paga.".into()
+                ));
+            }
+        }
+
+        sqlx::query!("DELETE FROM transactions WHERE id = $1", id)
+            .execute(&mut *tx)
+            .await?;
+
+        tx.commit().await?;
+        Ok(())
+    }
+
+    pub async fn update(
+        conn: &mut sqlx::PgConnection,
+        id: i32,
+        payload: UpdateTransactionPayload,
+    ) -> Result<Self, sqlx::Error> {
+        let mut db_tx = conn.begin().await?;
+
+        let old_tx = sqlx::query_as::<_, Self>(
+            "SELECT * FROM transactions WHERE id = $1 FOR UPDATE"
+        )
+        .bind(id)
+        .fetch_optional(&mut *db_tx)
+        .await?;
+
+        let old_tx = match old_tx {
+            Some(t) => t,
+            None => return Err(sqlx::Error::RowNotFound),
+        };
+
+        if old_tx.installment_id.is_some() {
+            return Err(sqlx::Error::Protocol(
+                "Esta transação pertence a um parcelamento. Utilize 'moneta installment adjust' para modificar o valor.".into()
+            ));
+        }
+
+        // Validação da Invoice Original
+        if let Some(inv_id) = old_tx.invoice_id {
+            let status = sqlx::query_scalar::<_, crate::models::types::InvoiceStatus>(
+                "SELECT status FROM invoices WHERE id = $1"
+            )
+            .bind(inv_id)
+            .fetch_one(&mut *db_tx)
+            .await?;
+
+            if status != crate::models::types::InvoiceStatus::Open {
+                return Err(sqlx::Error::Protocol(
+                    "Não é possível alterar transação de uma fatura fechada ou paga.".into()
+                ));
+            }
+        }
+
+        let mut next_account_id = match old_tx.source {
+            TransactionSource::Account { account_id } => Some(account_id),
+            _ => None,
+        };
+        let mut next_credit_card_id = match old_tx.source {
+            TransactionSource::CreditCard { credit_card_id } => Some(credit_card_id),
+            _ => None,
+        };
+
+        if let Some(acc_id) = payload.account_id {
+            next_account_id = Some(acc_id);
+            next_credit_card_id = None;
+        } else if let Some(cc_id) = payload.credit_card_id {
+            next_credit_card_id = Some(cc_id);
+            next_account_id = None;
+        }
+
+        let next_date = payload.date.unwrap_or(old_tx.date);
+        let mut next_invoice_id = None;
+
+        // Se o destino for Cartão, temos que achar a Invoice alvo e verificar se está aberta
+        if let Some(cc_id) = next_credit_card_id {
+            let invoice = crate::models::invoice::Invoice::find_or_create_for_date(&mut *db_tx, cc_id, next_date).await?;
+            if invoice.status != crate::models::types::InvoiceStatus::Open {
+                return Err(sqlx::Error::Protocol(
+                    "A fatura de destino já está fechada ou paga.".into()
+                ));
+            }
+            next_invoice_id = Some(invoice.id);
+        }
+
+        let category_id = payload.category_id.or(old_tx.category_id);
+        let transaction_type = payload.transaction_type.unwrap_or(old_tx.transaction_type);
+        let amount = payload.amount.unwrap_or(old_tx.amount);
+        let description = payload.description.unwrap_or(old_tx.description);
+
+        let row = sqlx::query_as::<_, Self>(
+            r#"
+            UPDATE transactions
+            SET 
+                account_id = $1, credit_card_id = $2, invoice_id = $3, category_id = $4,
+                transaction_type = $5, amount = $6, date = $7, description = $8,
+                updated_at = NOW()
+            WHERE id = $9
+            RETURNING *
+            "#
+        )
+        .bind(next_account_id)
+        .bind(next_credit_card_id)
+        .bind(next_invoice_id)
+        .bind(category_id)
+        .bind(transaction_type)
+        .bind(amount.as_decimal())
+        .bind(next_date)
+        .bind(description.as_str())
+        .bind(id)
+        .fetch_one(&mut *db_tx)
+        .await?;
+
+        db_tx.commit().await?;
+
+        Ok(row)
     }
 }
 
