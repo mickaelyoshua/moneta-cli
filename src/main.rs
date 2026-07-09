@@ -29,6 +29,9 @@ async fn run() -> Result<(), moneta_cli::error::AppError> {
         Command::Invoice { action } => {
             action.handle(&ctx).await?;
         }
+        Command::Installment { action } => {
+            action.handle(&ctx).await?;
+        }
     }
 
     Ok(())
