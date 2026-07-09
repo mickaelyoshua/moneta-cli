@@ -151,7 +151,9 @@ pub enum BudgetPeriod {
     Yearly,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum, sqlx::Type,
+)]
 #[sqlx(type_name = "recurrence_frequency_enum", rename_all = "lowercase")]
 pub enum RecurrenceFrequency {
     Daily,

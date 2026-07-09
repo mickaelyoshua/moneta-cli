@@ -20,4 +20,6 @@ pub enum AppError {
     Installment(#[from] crate::commands::installment::InstallmentError),
     #[error("Budget error: {0}")]
     Budget(#[from] crate::handlers::budget::BudgetError),
+    #[error("Recurrence error: {0}")]
+    Recurrence(#[from] crate::handlers::recurrence::RecurrenceError),
 }

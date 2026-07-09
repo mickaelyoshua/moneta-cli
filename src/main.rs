@@ -35,6 +35,9 @@ async fn run() -> Result<(), moneta_cli::error::AppError> {
         Command::Budget { action } => {
             action.handle(&ctx).await?;
         }
+        Command::Recurrence { action } => {
+            action.handle(&ctx).await?;
+        }
     }
 
     Ok(())
