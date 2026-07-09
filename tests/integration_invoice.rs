@@ -39,7 +39,9 @@ async fn test_invoice_lifecycle(pool: PgPool) {
     // 2. Act: Criação da Fatura baseado na data da transação
     // Compra no dia 20/07 (antes do fechamento 25/07) -> Fatura deve ser de Julho e vencer em 05/08
     let tx_date = NaiveDate::from_ymd_opt(2026, 7, 20).unwrap();
-    let invoice1 = Invoice::find_or_create_for_date(&pool, card.id, tx_date).await.unwrap();
+    let mut tx_conn = pool.begin().await.unwrap();
+    let invoice1 = Invoice::find_or_create_for_date(&mut *tx_conn, card.id, tx_date).await.unwrap();
+    tx_conn.commit().await.unwrap();
 
     assert_eq!(invoice1.month, 7);
     assert_eq!(invoice1.year, 2026);
@@ -48,7 +50,9 @@ async fn test_invoice_lifecycle(pool: PgPool) {
 
     // 3. Compra no dia 26/07 (depois do fechamento 25/07) -> Fatura deve ser de Agosto e vencer em 05/09
     let tx_date_next = NaiveDate::from_ymd_opt(2026, 7, 26).unwrap();
-    let invoice2 = Invoice::find_or_create_for_date(&pool, card.id, tx_date_next).await.unwrap();
+    let mut tx_conn2 = pool.begin().await.unwrap();
+    let invoice2 = Invoice::find_or_create_for_date(&mut *tx_conn2, card.id, tx_date_next).await.unwrap();
+    tx_conn2.commit().await.unwrap();
 
     assert_eq!(invoice2.month, 8);
     assert_eq!(invoice2.year, 2026);
@@ -57,7 +61,9 @@ async fn test_invoice_lifecycle(pool: PgPool) {
 
     // 3.5. Compra EXATAMENTE no dia do fechamento (25/07) -> Fatura deve ser de Agosto
     let tx_date_boundary = NaiveDate::from_ymd_opt(2026, 7, 25).unwrap();
-    let invoice_boundary = Invoice::find_or_create_for_date(&pool, card.id, tx_date_boundary).await.unwrap();
+    let mut tx_conn3 = pool.begin().await.unwrap();
+    let invoice_boundary = Invoice::find_or_create_for_date(&mut *tx_conn3, card.id, tx_date_boundary).await.unwrap();
+    tx_conn3.commit().await.unwrap();
     assert_eq!(invoice_boundary.month, 8, "Compras no dia do fechamento entram na próxima fatura");
 
     // 4. Fechar Fatura 1
@@ -66,7 +72,7 @@ async fn test_invoice_lifecycle(pool: PgPool) {
 
     // 5. Pagar Fatura 1 (debita da conta)
     // Atualizar total da fatura artificialmente para testar o pagamento
-    sqlx::query!("UPDATE invoices SET total_amount = $1 WHERE id = $2", Decimal::from_str("500.00").unwrap(), closed_invoice.id)
+    sqlx::query!("UPDATE invoices SET closing_amount = $1 WHERE id = $2", Decimal::from_str("500.00").unwrap(), closed_invoice.id)
         .execute(&pool).await.unwrap();
 
     let paid_invoice = Invoice::pay(&pool, card.id, 7, 2026, acc.id).await.unwrap();

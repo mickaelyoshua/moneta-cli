@@ -54,9 +54,10 @@ async fn test_credit_card_transaction_updates_invoice(pool: PgPool) {
 
     // 2. Act: Insert TWO transactions on the same month
     let tx_date = NaiveDate::from_ymd_opt(2026, 7, 20).unwrap();
+    let mut db_tx = pool.begin().await.unwrap();
     
     let tx1 = Transaction::insert(
-        &pool,
+        &mut *db_tx,
         NewTransaction {
             category_id: Some(ctg.id),
             source: TransactionSource::CreditCard {
@@ -66,13 +67,15 @@ async fn test_credit_card_transaction_updates_invoice(pool: PgPool) {
             amount: PositiveAmount::from_str("100.00").unwrap(),
             date: tx_date,
             description: NonEmptyString::from_str("Mouse").unwrap(),
+            installment_id: None,
+            installment_number: None,
         },
     )
     .await
     .unwrap();
 
     let tx2 = Transaction::insert(
-        &pool,
+        &mut *db_tx,
         NewTransaction {
             category_id: Some(ctg.id),
             source: TransactionSource::CreditCard {
@@ -82,21 +85,19 @@ async fn test_credit_card_transaction_updates_invoice(pool: PgPool) {
             amount: PositiveAmount::from_str("50.00").unwrap(),
             date: tx_date,
             description: NonEmptyString::from_str("Teclado").unwrap(),
+            installment_id: None,
+            installment_number: None,
         },
     )
     .await
     .unwrap();
 
+    db_tx.commit().await.unwrap();
+
     // 3. Assert
     assert!(tx1.invoice_id.is_some(), "Transaction 1 deve estar associada a uma fatura");
     assert_eq!(tx1.invoice_id, tx2.invoice_id, "Ambas devem estar na mesma fatura");
 
-    // Verificar se a fatura foi atualizada corretamente (100 + 50 = 150)
-    let invoice = sqlx::query_as::<_, Invoice>("SELECT * FROM invoices WHERE id = $1")
-        .bind(tx1.invoice_id.unwrap())
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-
-    assert_eq!(invoice.total_amount, Decimal::from_str("150.00").unwrap(), "Total da fatura deve ser a soma das transações");
+    let current_total = Invoice::current_total(&pool, tx1.invoice_id.unwrap()).await.unwrap();
+    assert_eq!(current_total, Decimal::from_str("150.00").unwrap(), "Total da fatura deve ser a soma das transações");
 }

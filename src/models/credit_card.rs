@@ -107,4 +107,29 @@ impl CreditCard {
 
         Ok(result.rows_affected() > 0)
     }
+
+    pub async fn used_limit(
+        pool: &sqlx::PgPool,
+        credit_card_id: i32,
+    ) -> Result<rust_decimal::Decimal, sqlx::Error> {
+        let row = sqlx::query!(
+            r#"
+            SELECT COALESCE(SUM(
+                CASE 
+                    WHEN t.transaction_type = 'income' THEN -t.amount 
+                    ELSE t.amount 
+                END
+            ), 0) AS used
+            FROM transactions t
+            LEFT JOIN invoices i ON t.invoice_id = i.id
+            WHERE t.credit_card_id = $1 
+              AND (i.status IS NULL OR i.status != 'paid')
+            "#,
+            credit_card_id
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(row.used.unwrap_or(rust_decimal::Decimal::ZERO))
+    }
 }

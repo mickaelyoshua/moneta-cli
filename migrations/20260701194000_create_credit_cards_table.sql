@@ -25,7 +25,7 @@ CREATE TABLE invoices (
     month SMALLINT NOT NULL,
     year SMALLINT NOT NULL,
     status invoice_status_enum NOT NULL DEFAULT 'open',
-    total_amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    closing_amount NUMERIC(12, 2) NULL,
     due_date DATE NOT NULL,
     
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

@@ -68,11 +68,15 @@ classDiagram
   class Recurrence
   class Category
   class Tag
+  class CreditCard
+  class Invoice
 
   Installment "1" *-- "N" Transaction : Groups
   Recurrence "1" *-- "N" Transaction : Generates
   Category "1" o-- "N" Transaction : Classifies
   Tag "N" o-- "N" Transaction : Tags
+  Invoice "1" *-- "N" Transaction : Batches
+  CreditCard "1" *-- "N" Invoice : Owns
 ```
 
 ## Level 4: Execution Flow (UML)

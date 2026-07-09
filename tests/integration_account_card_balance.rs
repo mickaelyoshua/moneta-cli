@@ -1,4 +1,3 @@
-use chrono::NaiveDate;
 use moneta_cli::models::account::{Account, NewAccount};
 use moneta_cli::models::category::{Category, NewCategory};
 use moneta_cli::models::credit_card::{CreditCard, NewCreditCard};

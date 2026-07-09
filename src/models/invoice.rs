@@ -11,7 +11,7 @@ pub struct Invoice {
     pub month: i16,
     pub year: i16,
     pub status: InvoiceStatus,
-    pub total_amount: Decimal,
+    pub closing_amount: Option<Decimal>,
     pub due_date: NaiveDate,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -39,7 +39,7 @@ impl Invoice {
     }
 
     pub async fn find_or_create_for_date(
-        pool: &sqlx::PgPool,
+        conn: &mut sqlx::PgConnection,
         credit_card_id: i32,
         transaction_date: NaiveDate,
     ) -> Result<Self, sqlx::Error> {
@@ -49,7 +49,7 @@ impl Invoice {
             r#"SELECT billing_day, due_day FROM credit_cards WHERE id = $1"#,
             credit_card_id
         )
-        .fetch_one(pool)
+        .fetch_one(&mut *conn)
         .await?;
 
         let day = transaction_date.day() as i16;
@@ -67,7 +67,7 @@ impl Invoice {
         .bind(credit_card_id)
         .bind(month)
         .bind(year)
-        .fetch_optional(pool)
+        .fetch_optional(&mut *conn)
         .await?;
 
         if let Some(inv) = existing {
@@ -86,8 +86,8 @@ impl Invoice {
 
         sqlx::query_as::<_, Self>(
             r#"
-            INSERT INTO invoices (credit_card_id, month, year, status, total_amount, due_date)
-            VALUES ($1, $2, $3, 'open', 0, $4)
+            INSERT INTO invoices (credit_card_id, month, year, status, due_date)
+            VALUES ($1, $2, $3, 'open', $4)
             RETURNING *
             "#,
         )
@@ -95,7 +95,7 @@ impl Invoice {
         .bind(month)
         .bind(year)
         .bind(due_date)
-        .fetch_one(pool)
+        .fetch_one(&mut *conn)
         .await
     }
 
@@ -108,7 +108,14 @@ impl Invoice {
         sqlx::query_as::<_, Self>(
             r#"
             UPDATE invoices 
-            SET status = 'closed'
+            SET status = 'closed', closing_amount = COALESCE((
+                SELECT SUM(
+                    CASE 
+                        WHEN transaction_type = 'income' THEN -amount 
+                        ELSE amount 
+                    END
+                ) FROM transactions WHERE invoice_id = invoices.id
+            ), 0)
             WHERE credit_card_id = $1 AND month = $2 AND year = $3 AND status = 'open'
             RETURNING *
             "#,
@@ -151,7 +158,7 @@ impl Invoice {
             VALUES ($1, 'transfer'::transaction_type_enum, $2, CURRENT_DATE, $3, 'cleared'::transaction_status_enum)
             "#,
             account_id,
-            invoice.total_amount,
+            invoice.closing_amount.unwrap_or(Decimal::ZERO),
             format!("Pagamento Fatura {}/{}", month, year)
         )
         .execute(&mut *tx)
@@ -171,15 +178,38 @@ impl Invoice {
         sqlx::query_as::<_, Self>(
             r#"
             UPDATE invoices 
-            SET status = 'open'
+            SET status = 'open', closing_amount = NULL
             WHERE credit_card_id = $1 AND month = $2 AND year = $3 AND status = 'closed'
             RETURNING *
-            "#,
+            "#
         )
         .bind(credit_card_id)
         .bind(month)
         .bind(year)
         .fetch_one(pool)
         .await
+    }
+
+    pub async fn current_total(
+        pool: &sqlx::PgPool,
+        invoice_id: i32,
+    ) -> Result<Decimal, sqlx::Error> {
+        let row = sqlx::query!(
+            r#"
+            SELECT COALESCE(SUM(
+                CASE 
+                    WHEN transaction_type = 'income' THEN -amount 
+                    ELSE amount 
+                END
+            ), 0) AS total
+            FROM transactions
+            WHERE invoice_id = $1
+            "#,
+            invoice_id
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(row.total.unwrap_or(Decimal::ZERO))
     }
 }
