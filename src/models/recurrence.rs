@@ -290,7 +290,7 @@ impl<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> for Recurrence {
             (None, Some(id)) => TransactionSource::CreditCard { credit_card_id: id },
             _ => {
                 return Err(sqlx::Error::Decode(
-                    "Recorrência deve pertencer a uma conta ou a um cartão de crédito.".into(),
+                    "Recurrence must belong to account or CC.".into(),
                 ));
             }
         };

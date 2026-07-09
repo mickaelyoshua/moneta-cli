@@ -32,7 +32,7 @@ impl Budget {
     ) -> Result<Self, sqlx::Error> {
         if category_id.is_none() && tag_id.is_none() {
             return Err(sqlx::Error::Protocol(
-                "Budget deve ter categoria ou tag.".into(),
+                "Budget must have category or tag.".into(),
             ));
         }
 

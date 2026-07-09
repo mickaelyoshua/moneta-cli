@@ -2,25 +2,25 @@ use clap::{Args, Subcommand};
 
 #[derive(Debug, Subcommand)]
 pub enum InstallmentCmd {
-    /// Adiciona um novo parcelamento
+    /// Adds a new installment
     Add(AddInstallmentArgs),
 
-    /// Lista os parcelamentos
+    /// Lists the installments
     List {
         #[arg(long, short)]
         limit: Option<usize>,
     },
 
-    /// Mostra detalhes de um parcelamento e suas faturas
+    /// Shows details of an installment and its invoices
     Show {
         #[arg(short, long)]
         id: i32,
     },
 
-    /// Ajusta os centavos de uma parcela específica
+    /// Adjusts the cents of a specific invoice in the installment
     Adjust(AdjustInstallmentArgs),
 
-    /// Deleta um parcelamento (reverte as faturas associadas se possível)
+    /// Deletes an installment (reverts associated invoices if possible)
     Delete {
         #[arg(short, long)]
         id: i32,
@@ -71,41 +71,41 @@ impl InstallmentCmd {
 
 #[derive(Debug, Args)]
 pub struct AddInstallmentArgs {
-    /// ID do cartão de crédito
+    /// Credit card ID
     #[arg(long)]
     pub card_id: i32,
 
-    /// ID da categoria (opcional)
+    /// Category ID (optional)
     #[arg(long)]
     pub category_id: Option<i32>,
 
-    /// Descrição da compra
+    /// Purchase description
     #[arg(short, long)]
     pub description: String,
 
-    /// Valor total da compra parcelada
+    /// Total amount of the installment purchase
     #[arg(short, long)]
     pub total_amount: String,
 
-    /// Quantidade de parcelas
+    /// Number of installments
     #[arg(short, long)]
     pub installments_count: i16,
 
-    /// Data da compra (formato YYYY-MM-DD). Padrão: hoje
+    /// Purchase date (YYYY-MM-DD format). Default: today
     #[arg(long)]
     pub date: Option<String>,
 }
 
 #[derive(Debug, Args)]
 pub struct AdjustInstallmentArgs {
-    /// ID do parcelamento base
+    /// Base installment ID
     pub id: i32,
 
-    /// Número da parcela a ser ajustada (ex: 1, 2, 3)
+    /// Installment number to be adjusted (e.g., 1, 2, 3)
     #[arg(short, long)]
     pub number: i16,
 
-    /// Novo valor exato da parcela (ex: 33.34)
+    /// New exact value of the installment (e.g., 33.34)
     #[arg(short, long)]
     pub amount: String,
 }

@@ -1,8 +1,6 @@
 #[derive(thiserror::Error, Debug)]
 pub enum ConfigError {
-    #[error(
-        "DATABASE_URL is mandatory. Define via flag (--database-url), environment variable or at ~/.config/moneta/config.toml"
-    )]
+    #[error("DATABASE_URL required (flag, env, or config.toml)")]
     MissingDatabaseUrl,
     #[error("Error reading {path:?}: {source}")]
     Io {

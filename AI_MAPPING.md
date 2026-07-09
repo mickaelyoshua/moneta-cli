@@ -1,18 +1,17 @@
-# Regras de Categorização IA
+# AI Categorization Rules
 
-Este arquivo atua como memória viva para a IA da Moneta CLI.
-Quando a IA parsear extratos ou notas fiscais, ela deve checar as regras abaixo antes de solicitar confirmação ao usuário.
-O usuário confirmará todas as entradas, mas a IA usará este arquivo para adivinhar a `Categoria` e as `Tags` corretas de forma determinística.
+Moneta CLI AI memory.
+AI checks rules here before asking user confirmation. AI guesses Category/Tags.
 
-## Mapeamento de Fornecedores
+## Vendor Mapping
 
-| Fornecedor / Remetente | Categoria | Tags Recomendadas | Notas |
+| Vendor / Sender | Category | Tags | Notes |
 | :--- | :--- | :--- | :--- |
 | Ivaldo Torres (Banco do Brasil) | Alimentação | `comida` | |
-| Uber | Transporte | `app` | Checar se não foi Uber Eats (Alimentação) |
+| Uber | Transporte | `app` | Check if not Uber Eats |
 | iFood | Alimentação | `delivery` | |
 
-## Instruções para Atualizar
-- Ao notar um padrão confirmado pelo usuário, a IA deve atualizar esta tabela proativamente.
-- A coluna `Categoria` deve apontar obrigatoriamente para um nome válido na tabela `categories` do DB.
-- A coluna `Tags Recomendadas` pode conter qualquer termo flexível.
+## Update Instructions
+- Update table when recognizing a confirmed pattern.
+- `Category` must be valid in DB.
+- `Tags` can be flexible.

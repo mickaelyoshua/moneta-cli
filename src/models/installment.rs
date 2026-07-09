@@ -33,7 +33,7 @@ impl Installment {
     ) -> Result<Self, sqlx::Error> {
         let mut tx = pool.begin().await?;
 
-        // 1. Inserir o Installment base
+        // 1. Insert base installment
         let installment = sqlx::query_as::<_, Self>(
             r#"
             INSERT INTO installments (credit_card_id, description, total_amount, installments_count)
@@ -48,16 +48,16 @@ impl Installment {
         .fetch_one(&mut *tx)
         .await?;
 
-        // 2. Lógica de rateio com sobra para a última parcela
+        // 2. Apportionment logic (remainder in last installment)
         let total = new_inst.total_amount.as_decimal();
         let count_dec = Decimal::from_str(&new_inst.installments_count.to_string()).unwrap();
 
         let base_amount = (total / count_dec).trunc_with_scale(2);
 
-        // Verifica se a base ficou 0 (ex: total 0.05 em 10 vezes = 0.00 base, erro de regra de negócio)
+        // Check if base is 0
         if base_amount == Decimal::ZERO {
             return Err(sqlx::Error::Protocol(
-                "O valor do parcelamento é pequeno demais para essa quantidade de parcelas (mínimo R$ 0,01 por parcela).".into()
+                "Installment amount too small for this count (min 0.01/installment).".into()
             ));
         }
 
@@ -65,7 +65,7 @@ impl Installment {
             * Decimal::from_str(&(new_inst.installments_count - 1).to_string()).unwrap();
         let last_amount = total - total_base;
 
-        // 3. Gerar transações mensais
+        // 3. Generate monthly transactions
         for i in 1..=new_inst.installments_count {
             let tx_date = new_inst.date + chrono::Months::new((i - 1) as u32);
             let tx_amount = if i == new_inst.installments_count {
@@ -87,7 +87,7 @@ impl Installment {
                 source: crate::models::types::TransactionSource::CreditCard {
                     credit_card_id: new_inst.credit_card_id,
                 },
-                transaction_type: crate::models::types::TransactionType::Expense, // Cartão sempre gera Expense
+                transaction_type: crate::models::types::TransactionType::Expense, // CC always generates Expense
                 amount: tx_amount,
                 date: tx_date,
                 description: tx_desc,
@@ -96,7 +96,7 @@ impl Installment {
                 tags: vec![],
             };
 
-            // Reutilizamos a lógica da transação, passando nossa conexão &mut *tx
+            // Reuse tx logic
             crate::models::transaction::Transaction::insert(&mut tx, new_tx).await?;
         }
 
@@ -136,7 +136,7 @@ impl Installment {
     pub async fn delete(pool: &sqlx::PgPool, id: i32) -> Result<bool, sqlx::Error> {
         let mut tx = pool.begin().await?;
 
-        // Verificar se já existe transação atrelada a uma fatura PAGA
+        // Check if linked to PAID invoice
         let paid_count = sqlx::query_scalar::<_, i64>(
             r#"
             SELECT COUNT(*) FROM transactions t
@@ -150,12 +150,11 @@ impl Installment {
 
         if paid_count > 0 {
             return Err(sqlx::Error::Protocol(
-                "Não é possível deletar um parcelamento onde alguma fatura atrelada já foi fechada ou paga.".into()
+                "Cannot delete installment with closed/paid invoices.".into()
             ));
         }
 
-        // As faturas agora são calculadas dinamicamente com base nas transações.
-        // Apenas deletamos as transações da fatura.
+        // Invoices are dynamic. Just delete transactions.
 
         sqlx::query!(r#"DELETE FROM transactions WHERE installment_id = $1"#, id)
             .execute(&mut *tx)
@@ -177,7 +176,7 @@ impl Installment {
     ) -> Result<crate::models::transaction::Transaction, sqlx::Error> {
         let mut tx = pool.begin().await?;
 
-        // Achar a transação
+        // Find transaction
         let old_tx = sqlx::query_as::<_, crate::models::transaction::Transaction>(
             r#"SELECT * FROM transactions WHERE installment_id = $1 AND installment_number = $2"#,
         )
@@ -192,7 +191,7 @@ impl Installment {
         };
 
         if let Some(inv_id) = old_tx.invoice_id {
-            // Checar se a fatura não está fechada/paga
+            // Check if invoice not closed/paid
             let status = sqlx::query_scalar::<_, crate::models::types::InvoiceStatus>(
                 "SELECT status FROM invoices WHERE id = $1",
             )
@@ -202,10 +201,10 @@ impl Installment {
 
             if status != crate::models::types::InvoiceStatus::Open {
                 return Err(sqlx::Error::Protocol(
-                    "Fatura já fechada ou paga. Ajuste bloqueado.".into(),
+                    "Invoice closed/paid. Adjust blocked.".into(),
                 ));
             }
-            // Não precisamos mais atualizar a fatura manualmente, o valor total é a soma on-the-fly.
+            // Invoice total is calculated on-the-fly.
         }
 
         let updated_tx = sqlx::query_as::<_, crate::models::transaction::Transaction>(

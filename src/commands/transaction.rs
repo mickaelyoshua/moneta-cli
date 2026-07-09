@@ -4,7 +4,7 @@ use clap::Subcommand;
 
 #[derive(thiserror::Error, Debug)]
 pub enum TransactionError {
-    #[error("Conta ou cartão de crédito deve ser informado")]
+    #[error("Account or credit card required")]
     MissingSource,
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
