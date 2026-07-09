@@ -110,7 +110,12 @@ impl TryFrom<AddTransactionArgs> for crate::models::transaction::NewTransaction 
 
         let tags = args
             .tags
-            .map(|t| t.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect())
+            .map(|t| {
+                t.split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect()
+            })
             .unwrap_or_default();
 
         Ok(Self {
@@ -155,6 +160,7 @@ mod tests {
             amount: crate::models::types::PositiveAmount::from_str("10.0").unwrap(),
             date: None,
             description: crate::models::types::NonEmptyString::from_str("Test").unwrap(),
+            tags: None,
         };
 
         let result = crate::models::transaction::NewTransaction::try_from(args);
@@ -171,6 +177,7 @@ mod tests {
             amount: crate::models::types::PositiveAmount::from_str("10.0").unwrap(),
             date: None,
             description: crate::models::types::NonEmptyString::from_str("Test").unwrap(),
+            tags: None,
         };
 
         let result = crate::models::transaction::NewTransaction::try_from(args);

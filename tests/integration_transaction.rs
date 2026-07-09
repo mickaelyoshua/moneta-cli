@@ -34,12 +34,13 @@ async fn test_transaction_insert_and_find_all(pool: PgPool) {
         description: NonEmptyString::from_str("Lunch").unwrap(),
         installment_id: None,
         installment_number: None,
+        tags: vec![],
     };
 
     let mut tx = pool.begin().await.expect("start tx");
 
     // Action
-    let transaction = Transaction::insert(&mut *tx, new_tx)
+    let transaction = Transaction::insert(&mut tx, new_tx)
         .await
         .expect("Failed to insert transaction");
         
@@ -103,10 +104,11 @@ async fn test_transaction_update_and_delete(pool: PgPool) {
         description: NonEmptyString::from_str("Lanche").unwrap(),
         installment_id: None,
         installment_number: None,
+        tags: vec![],
     };
 
     let mut db_tx = pool.begin().await.unwrap();
-    let tx = Transaction::insert(&mut *db_tx, new_tx).await.unwrap();
+    let tx = Transaction::insert(&mut db_tx, new_tx).await.unwrap();
     db_tx.commit().await.unwrap();
 
     // UPDATE: Mover para o Cartão de Crédito com novo valor
@@ -121,7 +123,7 @@ async fn test_transaction_update_and_delete(pool: PgPool) {
         description: Some(NonEmptyString::from_str("Jantar").unwrap()),
     };
     
-    let updated = Transaction::update(&mut *db_tx, tx.id, payload).await.unwrap();
+    let updated = Transaction::update(&mut db_tx, tx.id, payload).await.unwrap();
     db_tx.commit().await.unwrap();
 
     assert_eq!(updated.amount.as_decimal(), rust_decimal::Decimal::from_str("20.00").unwrap());
@@ -181,7 +183,7 @@ async fn test_transaction_update_delete_constraints(pool: PgPool) {
     // Tentar atualizar
     let mut db_tx = pool.begin().await.unwrap();
     let err_update = Transaction::update(
-        &mut *db_tx,
+        &mut db_tx,
         inst_tx.id,
         moneta_cli::models::transaction::UpdateTransactionPayload {
             amount: Some(PositiveAmount::from_str("50.00").unwrap()),
@@ -208,10 +210,11 @@ async fn test_transaction_update_delete_constraints(pool: PgPool) {
         description: NonEmptyString::from_str("Lanche").unwrap(),
         installment_id: None,
         installment_number: None,
+        tags: vec![],
     };
 
     let mut db_tx = pool.begin().await.unwrap();
-    let tx_normal = Transaction::insert(&mut *db_tx, new_tx).await.unwrap();
+    let tx_normal = Transaction::insert(&mut db_tx, new_tx).await.unwrap();
     db_tx.commit().await.unwrap();
 
     // Fechar fatura
@@ -224,7 +227,7 @@ async fn test_transaction_update_delete_constraints(pool: PgPool) {
     // Tentar update
     let mut db_tx = pool.begin().await.unwrap();
     let err_update_closed = Transaction::update(
-        &mut *db_tx,
+        &mut db_tx,
         tx_normal.id,
         moneta_cli::models::transaction::UpdateTransactionPayload {
             amount: Some(PositiveAmount::from_str("30.00").unwrap()),

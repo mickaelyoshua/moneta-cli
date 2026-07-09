@@ -54,7 +54,7 @@ async fn test_used_limit_and_invoice_totals(pool: PgPool) {
 
     // 1. Inserir Despesa de 100
     Transaction::insert(
-        &mut *tx,
+        &mut tx,
         NewTransaction {
             category_id: Some(ctg.id),
             source: TransactionSource::CreditCard { credit_card_id: card.id },
@@ -64,6 +64,7 @@ async fn test_used_limit_and_invoice_totals(pool: PgPool) {
             description: NonEmptyString::from_str("Despesa 1").unwrap(),
             installment_id: None,
             installment_number: None,
+            tags: vec![],
         },
     )
     .await
@@ -71,7 +72,7 @@ async fn test_used_limit_and_invoice_totals(pool: PgPool) {
 
     // 2. Inserir Estorno (Income) de 30
     Transaction::insert(
-        &mut *tx,
+        &mut tx,
         NewTransaction {
             category_id: Some(ctg.id),
             source: TransactionSource::CreditCard { credit_card_id: card.id },
@@ -81,6 +82,7 @@ async fn test_used_limit_and_invoice_totals(pool: PgPool) {
             description: NonEmptyString::from_str("Refund").unwrap(),
             installment_id: None,
             installment_number: None,
+            tags: vec![],
         },
     )
     .await

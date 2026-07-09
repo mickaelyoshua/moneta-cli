@@ -57,7 +57,7 @@ async fn test_credit_card_transaction_updates_invoice(pool: PgPool) {
     let mut db_tx = pool.begin().await.unwrap();
     
     let tx1 = Transaction::insert(
-        &mut *db_tx,
+        &mut db_tx,
         NewTransaction {
             category_id: Some(ctg.id),
             source: TransactionSource::CreditCard {
@@ -69,13 +69,14 @@ async fn test_credit_card_transaction_updates_invoice(pool: PgPool) {
             description: NonEmptyString::from_str("Mouse").unwrap(),
             installment_id: None,
             installment_number: None,
+            tags: vec![],
         },
     )
     .await
     .unwrap();
 
     let tx2 = Transaction::insert(
-        &mut *db_tx,
+        &mut db_tx,
         NewTransaction {
             category_id: Some(ctg.id),
             source: TransactionSource::CreditCard {
@@ -87,6 +88,7 @@ async fn test_credit_card_transaction_updates_invoice(pool: PgPool) {
             description: NonEmptyString::from_str("Teclado").unwrap(),
             installment_id: None,
             installment_number: None,
+            tags: vec![],
         },
     )
     .await
