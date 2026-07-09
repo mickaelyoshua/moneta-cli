@@ -5,7 +5,10 @@ pub struct Db {
 }
 
 impl Db {
-    pub async fn new(database_url: &str, max_connections: u32) -> Result<Self, crate::error::AppError> {
+    pub async fn new(
+        database_url: &str,
+        max_connections: u32,
+    ) -> Result<Self, crate::error::AppError> {
         let pool = PgPoolOptions::new()
             .max_connections(max_connections)
             .connect(database_url)

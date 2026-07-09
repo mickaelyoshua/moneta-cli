@@ -274,7 +274,7 @@ impl Transaction {
 
         // Se o destino for Cartão, temos que achar a Invoice alvo e verificar se está aberta
         if let Some(cc_id) = next_credit_card_id {
-            let invoice = crate::models::invoice::Invoice::find_or_create_for_date(&mut *db_tx, cc_id, next_date).await?;
+            let invoice = crate::models::invoice::Invoice::find_or_create_for_date(&mut db_tx, cc_id, next_date).await?;
             if invoice.status != crate::models::types::InvoiceStatus::Open {
                 return Err(sqlx::Error::Protocol(
                     "A fatura de destino já está fechada ou paga.".into()

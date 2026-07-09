@@ -80,7 +80,7 @@ async fn test_installment_insert_math(pool: PgPool) {
     assert_eq!(txs.len(), 3);
 
     // Ordenar por data
-    txs.sort_by(|a, b| a.date.cmp(&b.date));
+    txs.sort_by_key(|a| a.date);
 
     // Parcela 1
     assert_eq!(txs[0].amount.as_decimal(), Decimal::from_str("3.33").unwrap());

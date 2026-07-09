@@ -22,22 +22,30 @@ pub async fn show(ctx: &AppContext, id: i32) -> Result<(), InstallmentError> {
     let inst = Installment::find_by_id(&ctx.db.pool, id).await?;
     // We can also fetch the transactions associated
     let txs = sqlx::query_as::<_, crate::models::transaction::Transaction>(
-        "SELECT * FROM transactions WHERE installment_id = $1 ORDER BY installment_number"
+        "SELECT * FROM transactions WHERE installment_id = $1 ORDER BY installment_number",
     )
     .bind(id)
     .fetch_all(&ctx.db.pool)
     .await?;
 
     if ctx.json_output {
-        crate::handlers::render_success(ctx, &serde_json::json!({
-            "installment": inst,
-            "transactions": txs
-        }));
+        crate::handlers::render_success(
+            ctx,
+            &serde_json::json!({
+                "installment": inst,
+                "transactions": txs
+            }),
+        );
     } else {
         println!("{:#?}", inst);
         println!("Transações:");
         for tx in txs {
-            println!("- Parcela {:?}: {} ({})", tx.installment_number, tx.amount.as_decimal(), tx.date);
+            println!(
+                "- Parcela {:?}: {} ({})",
+                tx.installment_number,
+                tx.amount.as_decimal(),
+                tx.date
+            );
         }
     }
     Ok(())
@@ -46,7 +54,7 @@ pub async fn show(ctx: &AppContext, id: i32) -> Result<(), InstallmentError> {
 pub async fn adjust(ctx: &AppContext, args: AdjustInstallmentArgs) -> Result<(), InstallmentError> {
     let new_amount = crate::models::types::PositiveAmount::from_str(&args.amount)
         .map_err(|e| InstallmentError::Parse(e.to_string()))?;
-    
+
     let tx = Installment::adjust(&ctx.db.pool, args.id, args.number, new_amount).await?;
     crate::handlers::render_success(ctx, &tx);
     Ok(())

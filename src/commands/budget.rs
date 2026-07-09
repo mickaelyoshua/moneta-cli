@@ -1,5 +1,5 @@
-use clap::Subcommand;
 use crate::models::types::{BudgetPeriod, PositiveAmount};
+use clap::Subcommand;
 
 #[derive(Debug, Subcommand)]
 pub enum BudgetCmd {

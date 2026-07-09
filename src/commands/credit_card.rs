@@ -1,8 +1,8 @@
 use clap::Subcommand;
 
 use crate::models::{
-    types::{DayOfMonth, NonEmptyString, NonNegativeAmount},
     credit_card::NewCreditCard,
+    types::{DayOfMonth, NonEmptyString, NonNegativeAmount},
 };
 
 #[derive(thiserror::Error, Debug)]

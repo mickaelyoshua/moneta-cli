@@ -181,7 +181,7 @@ impl Invoice {
             SET status = 'open', closing_amount = NULL
             WHERE credit_card_id = $1 AND month = $2 AND year = $3 AND status = 'closed'
             RETURNING *
-            "#
+            "#,
         )
         .bind(credit_card_id)
         .bind(month)

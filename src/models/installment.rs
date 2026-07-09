@@ -1,7 +1,6 @@
 use super::types::{NonEmptyString, PositiveAmount};
-use chrono::{DateTime, Datelike, NaiveDate, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
-use rust_decimal::prelude::ToPrimitive;
 use serde::Serialize;
 use sqlx::FromRow;
 use std::str::FromStr;
@@ -52,7 +51,7 @@ impl Installment {
         // 2. Lógica de rateio com sobra para a última parcela
         let total = new_inst.total_amount.as_decimal();
         let count_dec = Decimal::from_str(&new_inst.installments_count.to_string()).unwrap();
-        
+
         let base_amount = (total / count_dec).trunc_with_scale(2);
 
         // Verifica se a base ficou 0 (ex: total 0.05 em 10 vezes = 0.00 base, erro de regra de negócio)
@@ -98,7 +97,7 @@ impl Installment {
             };
 
             // Reutilizamos a lógica da transação, passando nossa conexão &mut *tx
-            crate::models::transaction::Transaction::insert(&mut *tx, new_tx).await?;
+            crate::models::transaction::Transaction::insert(&mut tx, new_tx).await?;
         }
 
         tx.commit().await?;

@@ -35,7 +35,7 @@ impl Tag {
             .await?;
             ids.push(record.id);
         }
-        
+
         Ok(ids)
     }
 }

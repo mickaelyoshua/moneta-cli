@@ -4,7 +4,7 @@ use crate::context::AppContext;
 pub async fn add(ctx: &AppContext, args: AddTransactionArgs) -> Result<(), TransactionError> {
     let new_tx: crate::models::transaction::NewTransaction = args.try_into()?;
     let mut conn = ctx.db.pool.acquire().await?;
-    let tx = crate::models::transaction::Transaction::insert(&mut *conn, new_tx).await?;
+    let tx = crate::models::transaction::Transaction::insert(&mut conn, new_tx).await?;
 
     crate::handlers::render_success(ctx, &tx);
     Ok(())
@@ -45,7 +45,7 @@ pub async fn update(
     };
 
     let mut conn = ctx.db.pool.acquire().await?;
-    let tx = crate::models::transaction::Transaction::update(&mut *conn, args.id, payload).await?;
+    let tx = crate::models::transaction::Transaction::update(&mut conn, args.id, payload).await?;
     crate::handlers::render_success(ctx, &tx);
     Ok(())
 }

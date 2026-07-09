@@ -1,6 +1,8 @@
 #[derive(thiserror::Error, Debug)]
 pub enum ConfigError {
-    #[error("DATABASE_URL is mandatory. Define via flag (--database-url), environment variable or at ~/.config/moneta/config.toml")]
+    #[error(
+        "DATABASE_URL is mandatory. Define via flag (--database-url), environment variable or at ~/.config/moneta/config.toml"
+    )]
     MissingDatabaseUrl,
     #[error("Error reading {path:?}: {source}")]
     Io {
@@ -69,10 +71,11 @@ impl Config {
             return Ok(FileConfig::default());
         };
 
-        let content = fs::read_to_string(&path)
-            .map_err(|source| ConfigError::Io { path: path.clone(), source })?;
+        let content = fs::read_to_string(&path).map_err(|source| ConfigError::Io {
+            path: path.clone(),
+            source,
+        })?;
 
-        toml::from_str(&content)
-            .map_err(|source| ConfigError::Parse { path, source })
+        toml::from_str(&content).map_err(|source| ConfigError::Parse { path, source })
     }
 }
