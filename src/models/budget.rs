@@ -1,8 +1,8 @@
 use super::types::{BudgetPeriod, PositiveAmount};
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
+use rust_decimal::Decimal;
 use serde::Serialize;
 use sqlx::FromRow;
-use rust_decimal::Decimal;
 
 #[derive(Debug, Serialize, FromRow)]
 pub struct Budget {
@@ -31,7 +31,9 @@ impl Budget {
         period: BudgetPeriod,
     ) -> Result<Self, sqlx::Error> {
         if category_id.is_none() && tag_id.is_none() {
-            return Err(sqlx::Error::Protocol("Budget deve ter categoria ou tag.".into()));
+            return Err(sqlx::Error::Protocol(
+                "Budget deve ter categoria ou tag.".into(),
+            ));
         }
 
         sqlx::query_as::<_, Self>(
@@ -39,7 +41,7 @@ impl Budget {
             INSERT INTO budgets (category_id, tag_id, amount_limit, period)
             VALUES ($1, $2, $3, $4)
             RETURNING *
-            "#
+            "#,
         )
         .bind(category_id)
         .bind(tag_id)
@@ -80,10 +82,15 @@ impl Budget {
         let sum: Option<Decimal> = if let Some(cat_id) = self.category_id {
             sqlx::query_scalar(
                 r#"
-                SELECT SUM(amount)
+                SELECT SUM(
+                    CASE 
+                        WHEN transaction_type = 'income' THEN -amount 
+                        ELSE amount 
+                    END
+                )
                 FROM transactions
                 WHERE category_id = $1 AND date >= $2 AND date <= $3 AND status = 'cleared'
-                "#
+                "#,
             )
             .bind(cat_id)
             .bind(start)
@@ -93,11 +100,16 @@ impl Budget {
         } else if let Some(tag_id) = self.tag_id {
             sqlx::query_scalar(
                 r#"
-                SELECT SUM(t.amount)
+                SELECT SUM(
+                    CASE 
+                        WHEN t.transaction_type = 'income' THEN -t.amount 
+                        ELSE t.amount 
+                    END
+                )
                 FROM transactions t
                 INNER JOIN transaction_tags tt ON tt.transaction_id = t.id
                 WHERE tt.tag_id = $1 AND t.date >= $2 AND t.date <= $3 AND t.status = 'cleared'
-                "#
+                "#,
             )
             .bind(tag_id)
             .bind(start)
