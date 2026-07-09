@@ -70,6 +70,8 @@ classDiagram
   class Tag
   class CreditCard
   class Invoice
+  class Account
+  class Budget
 
   Installment "1" *-- "N" Transaction : Groups
   Recurrence "1" *-- "N" Transaction : Generates
@@ -77,6 +79,10 @@ classDiagram
   Tag "N" o-- "N" Transaction : Tags
   Invoice "1" *-- "N" Transaction : Batches
   CreditCard "1" *-- "N" Invoice : Owns
+  CreditCard "1" *-- "N" Transaction : Originates
+  Account "1" *-- "N" Transaction : Originates
+  Category "1" o-- "0..1" Budget : Limits
+  Tag "1" o-- "0..1" Budget : Limits
 ```
 
 ## Level 4: Execution Flow (UML)
