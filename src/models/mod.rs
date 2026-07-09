@@ -8,6 +8,7 @@ pub mod recurrence;
 pub mod tag;
 pub mod transaction;
 pub mod types;
+pub mod overview;
 
 pub use account::Account;
 pub use category::Category;

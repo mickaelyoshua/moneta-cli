@@ -6,6 +6,7 @@ pub mod installment;
 pub mod invoice;
 pub mod recurrence;
 pub mod transaction;
+pub mod overview;
 
 use crate::context::AppContext;
 use serde::Serialize;

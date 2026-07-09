@@ -6,3 +6,4 @@ pub mod installment;
 pub mod invoice;
 pub mod recurrence;
 pub mod transaction;
+pub mod overview;

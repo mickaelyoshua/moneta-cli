@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 use crate::commands::{
     account::AccountCmd, budget::BudgetCmd, category::CategoryCmd, credit_card::CreditCardCmd,
     installment::InstallmentCmd, invoice::InvoiceCmd, recurrence::RecurrenceCmd,
-    transaction::TransactionCmd,
+    transaction::TransactionCmd, overview::OverviewCmd,
 };
 
 #[derive(clap::Args, Debug)]
@@ -62,4 +62,5 @@ pub enum Command {
         #[command(subcommand)]
         action: RecurrenceCmd,
     },
+    Overview(OverviewCmd),
 }
