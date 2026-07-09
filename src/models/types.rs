@@ -138,7 +138,17 @@ pub enum InvoiceStatus {
 #[sqlx(type_name = "account_type_enum", rename_all = "lowercase")]
 pub enum AccountType {
     Checking,
-    Savings,
+}
+
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum, sqlx::Type,
+)]
+#[sqlx(type_name = "budget_period", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum BudgetPeriod {
+    Weekly,
+    Monthly,
+    Yearly,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]

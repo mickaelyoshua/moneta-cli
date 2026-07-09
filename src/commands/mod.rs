@@ -4,3 +4,4 @@ pub mod credit_card;
 pub mod transaction;
 pub mod invoice;
 pub mod installment;
+pub mod budget;

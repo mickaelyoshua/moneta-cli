@@ -6,6 +6,7 @@ pub mod recurrence;
 pub mod tag;
 pub mod transaction;
 pub mod types;
+pub mod budget;
 pub mod invoice;
 
 pub use account::Account;

@@ -18,4 +18,6 @@ pub enum AppError {
     Invoice(#[from] crate::commands::invoice::InvoiceError),
     #[error("Installment error: {0}")]
     Installment(#[from] crate::commands::installment::InstallmentError),
+    #[error("Budget error: {0}")]
+    Budget(#[from] crate::handlers::budget::BudgetError),
 }
