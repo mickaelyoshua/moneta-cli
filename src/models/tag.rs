@@ -15,3 +15,27 @@ pub struct TransactionTag {
     pub transaction_id: i32,
     pub tag_id: i32,
 }
+
+impl Tag {
+    pub async fn resolve_names(
+        conn: &mut sqlx::PgConnection,
+        names: &[String],
+    ) -> Result<Vec<i32>, sqlx::Error> {
+        if names.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let mut ids = Vec::new();
+        for name in names {
+            let record = sqlx::query!(
+                "INSERT INTO tags (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id",
+                name
+            )
+            .fetch_one(&mut *conn)
+            .await?;
+            ids.push(record.id);
+        }
+        
+        Ok(ids)
+    }
+}

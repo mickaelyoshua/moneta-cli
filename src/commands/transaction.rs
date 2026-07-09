@@ -56,6 +56,9 @@ pub struct AddTransactionArgs {
 
     #[arg(long)]
     pub description: NonEmptyString,
+
+    #[arg(long)]
+    pub tags: Option<String>,
 }
 
 #[derive(Debug, clap::Args)]
@@ -105,6 +108,11 @@ impl TryFrom<AddTransactionArgs> for crate::models::transaction::NewTransaction 
             return Err(TransactionError::MissingSource);
         };
 
+        let tags = args
+            .tags
+            .map(|t| t.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect())
+            .unwrap_or_default();
+
         Ok(Self {
             category_id: Some(args.category_id),
             source,
@@ -114,6 +122,7 @@ impl TryFrom<AddTransactionArgs> for crate::models::transaction::NewTransaction 
             description: args.description,
             installment_id: None,
             installment_number: None,
+            tags,
         })
     }
 }

@@ -94,6 +94,7 @@ impl Installment {
                 description: tx_desc,
                 installment_id: Some(installment.id),
                 installment_number: Some(i),
+                tags: vec![],
             };
 
             // Reutilizamos a lógica da transação, passando nossa conexão &mut *tx

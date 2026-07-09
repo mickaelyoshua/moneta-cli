@@ -24,6 +24,8 @@ pub struct Transaction {
     pub installment_number: Option<i16>,
     pub status: TransactionStatus,
 
+    pub tags: Vec<String>,
+
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -38,6 +40,7 @@ pub struct NewTransaction {
     pub description: NonEmptyString,
     pub installment_id: Option<i32>,
     pub installment_number: Option<i16>,
+    pub tags: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -79,7 +82,7 @@ impl Transaction {
             }
         };
 
-        let row = sqlx::query_as::<_, Transaction>(
+        let mut row = sqlx::query_as::<_, Transaction>(
             r#"
             INSERT INTO transactions (
                 category_id, account_id, credit_card_id, invoice_id,
@@ -99,8 +102,22 @@ impl Transaction {
         .bind(new_tx.description.as_str())
         .bind(new_tx.installment_id)
         .bind(new_tx.installment_number)
-        .fetch_one(conn)
+        .fetch_one(&mut *conn)
         .await?;
+
+        if !new_tx.tags.is_empty() {
+            let tag_ids = crate::models::tag::Tag::resolve_names(&mut *conn, &new_tx.tags).await?;
+            for tag_id in tag_ids {
+                sqlx::query!(
+                    "INSERT INTO transaction_tags (transaction_id, tag_id) VALUES ($1, $2)",
+                    row.id,
+                    tag_id
+                )
+                .execute(&mut *conn)
+                .await?;
+            }
+            row.tags = new_tx.tags;
+        }
 
         Ok(row)
     }
@@ -112,9 +129,12 @@ impl Transaction {
         let limit = limit.unwrap_or(50) as i64;
         let rows = sqlx::query_as::<_, Transaction>(
             r#"
-            SELECT *
-            FROM transactions
-            ORDER BY date DESC, created_at DESC
+            SELECT t.*, COALESCE(array_agg(tg.name) FILTER (WHERE tg.name IS NOT NULL), '{}') AS tags
+            FROM transactions t
+            LEFT JOIN transaction_tags tt ON tt.transaction_id = t.id
+            LEFT JOIN tags tg ON tg.id = tt.tag_id
+            GROUP BY t.id
+            ORDER BY t.date DESC, t.created_at DESC
             LIMIT $1
             "#,
         )
@@ -131,7 +151,12 @@ impl Transaction {
     ) -> Result<Self, sqlx::Error> {
         sqlx::query_as::<_, Self>(
             r#"
-            SELECT * FROM transactions WHERE id = $1
+            SELECT t.*, COALESCE(array_agg(tg.name) FILTER (WHERE tg.name IS NOT NULL), '{}') AS tags
+            FROM transactions t
+            LEFT JOIN transaction_tags tt ON tt.transaction_id = t.id
+            LEFT JOIN tags tg ON tg.id = tt.tag_id
+            WHERE t.id = $1
+            GROUP BY t.id
             "#,
         )
         .bind(id)
@@ -322,6 +347,7 @@ impl<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> for Transaction {
             description: row.try_get("description")?,
             installment_number: row.try_get("installment_number")?,
             status: row.try_get("status")?,
+            tags: row.try_get("tags").unwrap_or_default(),
             created_at: row.try_get("created_at")?,
             updated_at: row.try_get("updated_at")?,
         })
