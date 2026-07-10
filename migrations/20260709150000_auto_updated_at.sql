@@ -7,5 +7,5 @@ CREATE TRIGGER update_invoices_updated_at BEFORE UPDATE ON invoices FOR EACH ROW
 CREATE TRIGGER update_installments_updated_at BEFORE UPDATE ON installments FOR EACH ROW EXECUTE PROCEDURE moddatetime(updated_at);
 CREATE TRIGGER update_recurrences_updated_at BEFORE UPDATE ON recurrences FOR EACH ROW EXECUTE PROCEDURE moddatetime(updated_at);
 CREATE TRIGGER update_transactions_updated_at BEFORE UPDATE ON transactions FOR EACH ROW EXECUTE PROCEDURE moddatetime(updated_at);
-CREATE TRIGGER update_tags_updated_at BEFORE UPDATE ON tags FOR EACH ROW EXECUTE PROCEDURE moddatetime(updated_at);
+
 CREATE TRIGGER update_budgets_updated_at BEFORE UPDATE ON budgets FOR EACH ROW EXECUTE PROCEDURE moddatetime(updated_at);
