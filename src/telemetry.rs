@@ -1,10 +1,10 @@
 use std::fs;
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{
+    EnvFilter, Layer,
     fmt::{self, format::FmtSpan},
     layer::SubscriberExt,
     util::SubscriberInitExt,
-    EnvFilter, Layer,
 };
 
 /// Init telemetry.
@@ -34,7 +34,7 @@ pub fn init_telemetry() {
             // Layer 2: File. Daily rotation.
             let file_appender = RollingFileAppender::builder()
                 .rotation(Rotation::DAILY)
-                .filename_prefix("moneta.app")
+                .filename_prefix("moneta")
                 .filename_suffix("log")
                 .max_log_files(30)
                 .build(log_dir)
@@ -49,7 +49,10 @@ pub fn init_telemetry() {
             layers.push(file_layer.boxed());
         }
         Err(e) => {
-            eprintln!("Warn: Log dir creation failed. File logging disabled: {}", e);
+            eprintln!(
+                "Warn: Log dir creation failed. File logging disabled: {}",
+                e
+            );
         }
     }
 
