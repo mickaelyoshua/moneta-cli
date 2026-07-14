@@ -51,24 +51,37 @@ impl InvoiceCmd {
             Self::View {
                 credit_card_id,
                 limit,
-            } => crate::handlers::invoice::view(ctx, credit_card_id, limit).await?,
+            } => {
+                let res = crate::handlers::invoice::view(ctx, credit_card_id, limit).await?;
+                crate::commands::render_success(ctx, &res);
+            }
             Self::Close {
                 credit_card_id,
                 month,
                 year,
-            } => crate::handlers::invoice::close(ctx, credit_card_id, month, year).await?,
+            } => {
+                let res = crate::handlers::invoice::close(ctx, credit_card_id, month, year).await?;
+                crate::commands::render_success(ctx, &res);
+            }
             Self::Reopen {
                 credit_card_id,
                 month,
                 year,
-            } => crate::handlers::invoice::reopen(ctx, credit_card_id, month, year).await?,
+            } => {
+                let res =
+                    crate::handlers::invoice::reopen(ctx, credit_card_id, month, year).await?;
+                crate::commands::render_success(ctx, &res);
+            }
             Self::Pay {
                 credit_card_id,
                 month,
                 year,
                 account_id,
             } => {
-                crate::handlers::invoice::pay(ctx, credit_card_id, month, year, account_id).await?
+                let res =
+                    crate::handlers::invoice::pay(ctx, credit_card_id, month, year, account_id)
+                        .await?;
+                crate::commands::render_success(ctx, &res);
             }
         }
         Ok(())

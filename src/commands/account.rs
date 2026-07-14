@@ -80,11 +80,26 @@ impl AccountCmd {
         ctx: &crate::context::AppContext,
     ) -> Result<(), crate::error::AppError> {
         match self {
-            Self::Add(args) => crate::handlers::account::add(ctx, args).await?,
-            Self::List { limit } => crate::handlers::account::list(ctx, limit).await?,
-            Self::Balance { id } => crate::handlers::account::balance(ctx, id).await?,
-            Self::Update(args) => crate::handlers::account::update(ctx, args).await?,
-            Self::Delete { id } => crate::handlers::account::delete(ctx, id).await?,
+            Self::Add(args) => {
+                let res = crate::handlers::account::add(ctx, args).await?;
+                crate::commands::render_success(ctx, &res);
+            }
+            Self::List { limit } => {
+                let res = crate::handlers::account::list(ctx, limit).await?;
+                crate::commands::render_success(ctx, &res);
+            }
+            Self::Balance { id } => {
+                let res = crate::handlers::account::balance(ctx, id).await?;
+                crate::commands::render_success(ctx, &res);
+            }
+            Self::Update(args) => {
+                let res = crate::handlers::account::update(ctx, args).await?;
+                crate::commands::render_success(ctx, &res);
+            }
+            Self::Delete { id } => {
+                let res = crate::handlers::account::delete(ctx, id).await?;
+                crate::commands::render_success(ctx, &res);
+            }
         }
         Ok(())
     }

@@ -4,27 +4,26 @@ use crate::{
     models::credit_card::{CreditCard, NewCreditCard},
 };
 
-pub async fn add(ctx: &AppContext, args: AddCreditCardArgs) -> Result<(), CreditCardError> {
+pub async fn add(ctx: &AppContext, args: AddCreditCardArgs) -> Result<CreditCard, CreditCardError> {
     let new_card: NewCreditCard = args.try_into()?;
     let card = CreditCard::insert(&ctx.db.pool, new_card).await?;
 
-    crate::handlers::render_success(ctx, &card);
-
-    Ok(())
+    Ok(card)
 }
 
-pub async fn list(ctx: &AppContext, limit: Option<usize>) -> Result<(), CreditCardError> {
+pub async fn list(
+    ctx: &AppContext,
+    limit: Option<usize>,
+) -> Result<Vec<CreditCard>, CreditCardError> {
     let cards = CreditCard::find_all(&ctx.db.pool, limit).await?;
 
-    crate::handlers::render_success(ctx, &cards);
-
-    Ok(())
+    Ok(cards)
 }
 
 pub async fn update(
     ctx: &AppContext,
     args: crate::commands::credit_card::UpdateCreditCardArgs,
-) -> Result<(), CreditCardError> {
+) -> Result<CreditCard, CreditCardError> {
     let mut card = CreditCard::find_by_id(&ctx.db.pool, args.id).await?;
 
     if let Some(name) = args.name {
@@ -44,12 +43,10 @@ pub async fn update(
     }
 
     let updated = card.update(&ctx.db.pool).await?;
-    crate::handlers::render_success(ctx, &updated);
-    Ok(())
+    Ok(updated)
 }
 
-pub async fn delete(ctx: &AppContext, id: i32) -> Result<(), CreditCardError> {
+pub async fn delete(ctx: &AppContext, id: i32) -> Result<serde_json::Value, CreditCardError> {
     CreditCard::delete(&ctx.db.pool, id).await?;
-    crate::handlers::render_success(ctx, &serde_json::json!({ "deleted": true, "id": id }));
-    Ok(())
+    Ok(serde_json::json!({ "deleted": true, "id": id }))
 }

@@ -1,4 +1,5 @@
 use crate::context::AppContext;
+use crate::models::recurrence::{NewRecurrence, Recurrence, UpdateRecurrencePayload};
 use chrono::Local;
 
 #[derive(thiserror::Error, Debug)]
@@ -7,43 +8,35 @@ pub enum RecurrenceError {
     Database(#[from] sqlx::Error),
 }
 
-pub async fn add(
-    ctx: &AppContext,
-    new_rec: crate::models::recurrence::NewRecurrence,
-) -> Result<(), RecurrenceError> {
-    let rec = crate::models::recurrence::Recurrence::insert(&ctx.db.pool, new_rec).await?;
-    crate::handlers::render_success(ctx, &rec);
-    Ok(())
+pub async fn add(ctx: &AppContext, new_rec: NewRecurrence) -> Result<Recurrence, RecurrenceError> {
+    let rec = Recurrence::insert(&ctx.db.pool, new_rec).await?;
+    Ok(rec)
 }
 
-pub async fn list(ctx: &AppContext) -> Result<(), RecurrenceError> {
-    let recs = crate::models::recurrence::Recurrence::find_all(&ctx.db.pool).await?;
-    crate::handlers::render_success(ctx, &recs);
-    Ok(())
+pub async fn list(ctx: &AppContext) -> Result<Vec<Recurrence>, RecurrenceError> {
+    let recs = Recurrence::find_all(&ctx.db.pool).await?;
+    Ok(recs)
 }
 
 pub async fn update(
     ctx: &AppContext,
     id: i32,
-    payload: crate::models::recurrence::UpdateRecurrencePayload,
-) -> Result<(), RecurrenceError> {
-    let rec = crate::models::recurrence::Recurrence::update(&ctx.db.pool, id, payload).await?;
-    crate::handlers::render_success(ctx, &rec);
-    Ok(())
+    payload: UpdateRecurrencePayload,
+) -> Result<Recurrence, RecurrenceError> {
+    let rec = Recurrence::update(&ctx.db.pool, id, payload).await?;
+    Ok(rec)
 }
 
-pub async fn delete(ctx: &AppContext, id: i32) -> Result<(), RecurrenceError> {
-    crate::models::recurrence::Recurrence::delete(&ctx.db.pool, id).await?;
-    crate::handlers::render_success(ctx, &serde_json::json!({ "deleted": id }));
-    Ok(())
+pub async fn delete(ctx: &AppContext, id: i32) -> Result<serde_json::Value, RecurrenceError> {
+    Recurrence::delete(&ctx.db.pool, id).await?;
+    Ok(serde_json::json!({ "deleted": id }))
 }
 
 pub async fn sync(
     ctx: &AppContext,
     date: Option<chrono::NaiveDate>,
-) -> Result<(), RecurrenceError> {
+) -> Result<serde_json::Value, RecurrenceError> {
     let ref_date = date.unwrap_or_else(|| Local::now().naive_local().date());
-    let inserted = crate::models::recurrence::Recurrence::sync_all(&ctx.db.pool, ref_date).await?;
-    crate::handlers::render_success(ctx, &serde_json::json!({ "inserted": inserted }));
-    Ok(())
+    let inserted = Recurrence::sync_all(&ctx.db.pool, ref_date).await?;
+    Ok(serde_json::json!({ "inserted": inserted }))
 }

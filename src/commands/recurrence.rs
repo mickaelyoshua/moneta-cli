@@ -92,7 +92,7 @@ impl RecurrenceCmd {
     ) -> Result<(), crate::handlers::recurrence::RecurrenceError> {
         match self {
             RecurrenceCmd::Add(args) => {
-                crate::handlers::recurrence::add(
+                let res = crate::handlers::recurrence::add(
                     ctx,
                     crate::models::recurrence::NewRecurrence {
                         category_id: args.category_id,
@@ -113,11 +113,17 @@ impl RecurrenceCmd {
                         end_date: args.end_date,
                     },
                 )
-                .await
+                .await?;
+                crate::commands::render_success(ctx, &res);
+                Ok(())
             }
-            RecurrenceCmd::List => crate::handlers::recurrence::list(ctx).await,
+            RecurrenceCmd::List => {
+                let res = crate::handlers::recurrence::list(ctx).await?;
+                crate::commands::render_success(ctx, &res);
+                Ok(())
+            }
             RecurrenceCmd::Update(args) => {
-                crate::handlers::recurrence::update(
+                let res = crate::handlers::recurrence::update(
                     ctx,
                     args.id,
                     crate::models::recurrence::UpdateRecurrencePayload {
@@ -132,10 +138,20 @@ impl RecurrenceCmd {
                         end_date: None,
                     },
                 )
-                .await
+                .await?;
+                crate::commands::render_success(ctx, &res);
+                Ok(())
             }
-            RecurrenceCmd::Delete { id } => crate::handlers::recurrence::delete(ctx, id).await,
-            RecurrenceCmd::Sync { date } => crate::handlers::recurrence::sync(ctx, date).await,
+            RecurrenceCmd::Delete { id } => {
+                let res = crate::handlers::recurrence::delete(ctx, id).await?;
+                crate::commands::render_success(ctx, &res);
+                Ok(())
+            }
+            RecurrenceCmd::Sync { date } => {
+                let res = crate::handlers::recurrence::sync(ctx, date).await?;
+                crate::commands::render_success(ctx, &res);
+                Ok(())
+            }
         }
     }
 }

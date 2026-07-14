@@ -1,38 +1,26 @@
 use crate::{
-    commands::account::{AccountError, AddAccountArgs},
+    commands::account::{AccountError, AddAccountArgs, UpdateAccountArgs},
     context::AppContext,
-    models::account::{Account, NewAccount},
+    models::account::{Account, AccountBalance, NewAccount},
 };
 
-pub async fn add(ctx: &AppContext, args: AddAccountArgs) -> Result<(), AccountError> {
+pub async fn add(ctx: &AppContext, args: AddAccountArgs) -> Result<Account, AccountError> {
     let new_acc: NewAccount = args.try_into()?;
     let acc = Account::insert(&ctx.db.pool, new_acc).await?;
-
-    crate::handlers::render_success(ctx, &acc);
-
-    Ok(())
+    Ok(acc)
 }
 
-pub async fn list(ctx: &AppContext, limit: Option<usize>) -> Result<(), AccountError> {
+pub async fn list(ctx: &AppContext, limit: Option<usize>) -> Result<Vec<Account>, AccountError> {
     let accounts = Account::find_all(&ctx.db.pool, limit).await?;
-
-    crate::handlers::render_success(ctx, &accounts);
-
-    Ok(())
+    Ok(accounts)
 }
 
-pub async fn balance(ctx: &AppContext, account_id: i32) -> Result<(), AccountError> {
+pub async fn balance(ctx: &AppContext, account_id: i32) -> Result<AccountBalance, AccountError> {
     let balance = Account::balance(&ctx.db.pool, account_id).await?;
-
-    crate::handlers::render_success(ctx, &balance);
-
-    Ok(())
+    Ok(balance)
 }
 
-pub async fn update(
-    ctx: &AppContext,
-    args: crate::commands::account::UpdateAccountArgs,
-) -> Result<(), AccountError> {
+pub async fn update(ctx: &AppContext, args: UpdateAccountArgs) -> Result<Account, AccountError> {
     let mut acc = Account::find_by_id(&ctx.db.pool, args.id).await?;
 
     if let Some(name) = args.name {
@@ -49,12 +37,10 @@ pub async fn update(
     }
 
     let updated = acc.update(&ctx.db.pool).await?;
-    crate::handlers::render_success(ctx, &updated);
-    Ok(())
+    Ok(updated)
 }
 
-pub async fn delete(ctx: &AppContext, id: i32) -> Result<(), AccountError> {
+pub async fn delete(ctx: &AppContext, id: i32) -> Result<serde_json::Value, AccountError> {
     Account::delete(&ctx.db.pool, id).await?;
-    crate::handlers::render_success(ctx, &serde_json::json!({ "deleted": true, "id": id }));
-    Ok(())
+    Ok(serde_json::json!({ "deleted": true, "id": id }))
 }

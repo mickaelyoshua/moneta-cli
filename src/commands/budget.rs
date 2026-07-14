@@ -37,9 +37,22 @@ impl BudgetCmd {
                 tag_id,
                 limit,
                 period,
-            } => crate::handlers::budget::add(ctx, category_id, tag_id, limit, period).await,
-            BudgetCmd::List { date } => crate::handlers::budget::list(ctx, date).await,
-            BudgetCmd::Delete { id } => crate::handlers::budget::delete(ctx, id).await,
+            } => {
+                let res =
+                    crate::handlers::budget::add(ctx, category_id, tag_id, limit, period).await?;
+                crate::commands::render_success(ctx, &res);
+                Ok(())
+            }
+            BudgetCmd::List { date } => {
+                let res = crate::handlers::budget::list(ctx, date).await?;
+                crate::commands::render_success(ctx, &res);
+                Ok(())
+            }
+            BudgetCmd::Delete { id } => {
+                let res = crate::handlers::budget::delete(ctx, id).await?;
+                crate::commands::render_success(ctx, &res);
+                Ok(())
+            }
         }
     }
 }

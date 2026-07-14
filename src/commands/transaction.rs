@@ -135,11 +135,26 @@ impl TryFrom<AddTransactionArgs> for crate::models::transaction::NewTransaction 
 impl TransactionCmd {
     pub async fn handle(self, ctx: &AppContext) -> Result<(), crate::error::AppError> {
         match self {
-            Self::Add(args) => crate::handlers::transaction::add(ctx, args).await?,
-            Self::List { limit } => crate::handlers::transaction::list(ctx, limit).await?,
-            Self::Show { id } => crate::handlers::transaction::show(ctx, id).await?,
-            Self::Update(args) => crate::handlers::transaction::update(ctx, args).await?,
-            Self::Delete { id } => crate::handlers::transaction::delete(ctx, id).await?,
+            Self::Add(args) => {
+                let res = crate::handlers::transaction::add(ctx, args).await?;
+                crate::commands::render_success(ctx, &res);
+            }
+            Self::List { limit } => {
+                let res = crate::handlers::transaction::list(ctx, limit).await?;
+                crate::commands::render_success(ctx, &res);
+            }
+            Self::Show { id } => {
+                let res = crate::handlers::transaction::show(ctx, id).await?;
+                crate::commands::render_success(ctx, &res);
+            }
+            Self::Update(args) => {
+                let res = crate::handlers::transaction::update(ctx, args).await?;
+                crate::commands::render_success(ctx, &res);
+            }
+            Self::Delete { id } => {
+                let res = crate::handlers::transaction::delete(ctx, id).await?;
+                crate::commands::render_success(ctx, &res);
+            }
         }
         Ok(())
     }

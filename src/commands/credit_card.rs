@@ -90,10 +90,22 @@ impl CreditCardCmd {
         ctx: &crate::context::AppContext,
     ) -> Result<(), crate::error::AppError> {
         match self {
-            Self::Add(args) => crate::handlers::credit_card::add(ctx, args).await?,
-            Self::List { limit } => crate::handlers::credit_card::list(ctx, limit).await?,
-            Self::Update(args) => crate::handlers::credit_card::update(ctx, args).await?,
-            Self::Delete { id } => crate::handlers::credit_card::delete(ctx, id).await?,
+            Self::Add(args) => {
+                let res = crate::handlers::credit_card::add(ctx, args).await?;
+                crate::commands::render_success(ctx, &res);
+            }
+            Self::List { limit } => {
+                let res = crate::handlers::credit_card::list(ctx, limit).await?;
+                crate::commands::render_success(ctx, &res);
+            }
+            Self::Update(args) => {
+                let res = crate::handlers::credit_card::update(ctx, args).await?;
+                crate::commands::render_success(ctx, &res);
+            }
+            Self::Delete { id } => {
+                let res = crate::handlers::credit_card::delete(ctx, id).await?;
+                crate::commands::render_success(ctx, &res);
+            }
         }
         Ok(())
     }

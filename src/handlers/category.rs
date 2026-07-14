@@ -1,29 +1,25 @@
 use crate::{
     commands::category::{AddCategoryArgs, CategoryError},
     context::AppContext,
+    models::category::Category,
 };
 
-pub async fn add(ctx: &AppContext, args: AddCategoryArgs) -> Result<(), CategoryError> {
+pub async fn add(ctx: &AppContext, args: AddCategoryArgs) -> Result<Category, CategoryError> {
     let new_ctg: crate::models::category::NewCategory = args.try_into()?;
-    let ctg = crate::models::category::Category::insert(&ctx.db.pool, new_ctg).await?;
-
-    crate::handlers::render_success(ctx, &ctg);
-
-    Ok(())
+    let ctg = Category::insert(&ctx.db.pool, new_ctg).await?;
+    Ok(ctg)
 }
 
-pub async fn list(ctx: &AppContext, limit: Option<usize>) -> Result<(), CategoryError> {
-    let categories = crate::models::category::Category::find_all(&ctx.db.pool, limit).await?;
-
-    crate::handlers::render_success(ctx, &categories);
-    Ok(())
+pub async fn list(ctx: &AppContext, limit: Option<usize>) -> Result<Vec<Category>, CategoryError> {
+    let categories = Category::find_all(&ctx.db.pool, limit).await?;
+    Ok(categories)
 }
 
 pub async fn update(
     ctx: &AppContext,
     args: crate::commands::category::UpdateCategoryArgs,
-) -> Result<(), CategoryError> {
-    let mut ctg = crate::models::category::Category::find_by_id(&ctx.db.pool, args.id).await?;
+) -> Result<Category, CategoryError> {
+    let mut ctg = Category::find_by_id(&ctx.db.pool, args.id).await?;
 
     if let Some(name) = args.name {
         ctg.name = name;
@@ -36,12 +32,10 @@ pub async fn update(
     }
 
     let updated = ctg.update(&ctx.db.pool).await?;
-    crate::handlers::render_success(ctx, &updated);
-    Ok(())
+    Ok(updated)
 }
 
-pub async fn delete(ctx: &AppContext, id: i32) -> Result<(), CategoryError> {
-    crate::models::category::Category::delete(&ctx.db.pool, id).await?;
-    crate::handlers::render_success(ctx, &serde_json::json!({ "deleted": true, "id": id }));
-    Ok(())
+pub async fn delete(ctx: &AppContext, id: i32) -> Result<serde_json::Value, CategoryError> {
+    Category::delete(&ctx.db.pool, id).await?;
+    Ok(serde_json::json!({ "deleted": true, "id": id }))
 }

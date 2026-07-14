@@ -4,12 +4,9 @@ pub async fn view(
     ctx: &AppContext,
     credit_card_id: i32,
     limit: Option<usize>,
-) -> Result<(), InvoiceError> {
+) -> Result<Vec<Invoice>, InvoiceError> {
     let invoices = Invoice::find_all_by_card(&ctx.db.pool, credit_card_id, limit).await?;
-
-    crate::handlers::render_success(ctx, &invoices);
-
-    Ok(())
+    Ok(invoices)
 }
 
 pub async fn close(
@@ -17,12 +14,9 @@ pub async fn close(
     credit_card_id: i32,
     month: i16,
     year: i16,
-) -> Result<(), InvoiceError> {
+) -> Result<Invoice, InvoiceError> {
     let invoice = Invoice::close(&ctx.db.pool, credit_card_id, month, year).await?;
-
-    crate::handlers::render_success(ctx, &invoice);
-
-    Ok(())
+    Ok(invoice)
 }
 
 pub async fn reopen(
@@ -30,12 +24,9 @@ pub async fn reopen(
     credit_card_id: i32,
     month: i16,
     year: i16,
-) -> Result<(), InvoiceError> {
+) -> Result<Invoice, InvoiceError> {
     let invoice = Invoice::reopen(&ctx.db.pool, credit_card_id, month, year).await?;
-
-    crate::handlers::render_success(ctx, &invoice);
-
-    Ok(())
+    Ok(invoice)
 }
 
 pub async fn pay(
@@ -44,10 +35,7 @@ pub async fn pay(
     month: i16,
     year: i16,
     account_id: i32,
-) -> Result<(), InvoiceError> {
+) -> Result<Invoice, InvoiceError> {
     let invoice = Invoice::pay(&ctx.db.pool, credit_card_id, month, year, account_id).await?;
-
-    crate::handlers::render_success(ctx, &invoice);
-
-    Ok(())
+    Ok(invoice)
 }

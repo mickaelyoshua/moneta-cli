@@ -16,6 +16,12 @@ pub struct Installment {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Serialize)]
+pub struct InstallmentDetails {
+    pub installment: Installment,
+    pub transactions: Vec<crate::models::transaction::Transaction>,
+}
+
 #[derive(Debug)]
 pub struct NewInstallment {
     pub credit_card_id: i32,
@@ -57,7 +63,7 @@ impl Installment {
         // Check if base is 0
         if base_amount == Decimal::ZERO {
             return Err(sqlx::Error::Protocol(
-                "Installment amount too small for this count (min 0.01/installment).".into()
+                "Installment amount too small for this count (min 0.01/installment).".into(),
             ));
         }
 
@@ -150,7 +156,7 @@ impl Installment {
 
         if paid_count > 0 {
             return Err(sqlx::Error::Protocol(
-                "Cannot delete installment with closed/paid invoices.".into()
+                "Cannot delete installment with closed/paid invoices.".into(),
             ));
         }
 

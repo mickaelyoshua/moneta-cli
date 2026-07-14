@@ -14,23 +14,23 @@ pub async fn add(
     tag_id: Option<i32>,
     limit: PositiveAmount,
     period: BudgetPeriod,
-) -> Result<(), BudgetError> {
+) -> Result<crate::models::budget::Budget, BudgetError> {
     let budget =
         crate::models::budget::Budget::insert(&ctx.db.pool, category_id, tag_id, limit, period)
             .await?;
-    crate::handlers::render_success(ctx, &budget);
-    Ok(())
+    Ok(budget)
 }
 
-pub async fn list(ctx: &AppContext, date: Option<chrono::NaiveDate>) -> Result<(), BudgetError> {
+pub async fn list(
+    ctx: &AppContext,
+    date: Option<chrono::NaiveDate>,
+) -> Result<Vec<crate::models::budget::BudgetWithSpend>, BudgetError> {
     let ref_date = date.unwrap_or_else(|| Local::now().naive_local().date());
     let budgets = crate::models::budget::Budget::list_with_spend(&ctx.db.pool, ref_date).await?;
-    crate::handlers::render_success(ctx, &budgets);
-    Ok(())
+    Ok(budgets)
 }
 
-pub async fn delete(ctx: &AppContext, id: i32) -> Result<(), BudgetError> {
+pub async fn delete(ctx: &AppContext, id: i32) -> Result<serde_json::Value, BudgetError> {
     crate::models::budget::Budget::delete(&ctx.db.pool, id).await?;
-    crate::handlers::render_success(ctx, &serde_json::json!({ "deleted": id }));
-    Ok(())
+    Ok(serde_json::json!({ "deleted": id }))
 }

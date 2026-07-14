@@ -60,11 +60,45 @@ impl TryFrom<AddInstallmentArgs> for crate::models::installment::NewInstallment 
 impl InstallmentCmd {
     pub async fn handle(self, ctx: &crate::context::AppContext) -> Result<(), InstallmentError> {
         match self {
-            Self::Add(args) => crate::handlers::installment::add(ctx, args).await,
-            Self::List { limit } => crate::handlers::installment::list(ctx, limit).await,
-            Self::Show { id } => crate::handlers::installment::show(ctx, id).await,
-            Self::Adjust(args) => crate::handlers::installment::adjust(ctx, args).await,
-            Self::Delete { id } => crate::handlers::installment::delete(ctx, id).await,
+            Self::Add(args) => {
+                let res = crate::handlers::installment::add(ctx, args).await?;
+                crate::commands::render_success(ctx, &res);
+                Ok(())
+            }
+            Self::List { limit } => {
+                let res = crate::handlers::installment::list(ctx, limit).await?;
+                crate::commands::render_success(ctx, &res);
+                Ok(())
+            }
+            Self::Show { id } => {
+                let res = crate::handlers::installment::show(ctx, id).await?;
+                // Different handle for this because is a more complex structure
+                if ctx.json_output {
+                    crate::commands::render_success(ctx, &res);
+                } else {
+                    println!("{:#?}", res.installment);
+                    println!("Transações:");
+                    for tx in res.transactions {
+                        println!(
+                            "- Parcela {:?}: {} ({})",
+                            tx.installment_number,
+                            tx.amount.as_decimal(),
+                            tx.date
+                        );
+                    }
+                }
+                Ok(())
+            }
+            Self::Adjust(args) => {
+                let res = crate::handlers::installment::adjust(ctx, args).await?;
+                crate::commands::render_success(ctx, &res);
+                Ok(())
+            }
+            Self::Delete { id } => {
+                let res = crate::handlers::installment::delete(ctx, id).await?;
+                crate::commands::render_success(ctx, &res);
+                Ok(())
+            }
         }
     }
 }
