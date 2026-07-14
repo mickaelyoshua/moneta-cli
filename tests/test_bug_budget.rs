@@ -3,16 +3,26 @@ use moneta_cli::models::transaction::{NewTransaction, Transaction};
 use moneta_cli::models::types::{
     BudgetPeriod, NonEmptyString, PositiveAmount, TransactionSource, TransactionType,
 };
+use rust_decimal::Decimal;
 use sqlx::PgPool;
 use std::str::FromStr;
-use rust_decimal::Decimal;
 
 #[sqlx::test]
 async fn test_budget_current_spend_with_refund(pool: PgPool) {
-    let cat_id = sqlx::query!("INSERT INTO categories (name, category_type) VALUES ('Lazer', 'expense') RETURNING id")
-        .fetch_one(&pool).await.unwrap().id;
-    let acc_id = sqlx::query!("INSERT INTO accounts (name, account_type) VALUES ('Conta', 'checking') RETURNING id")
-        .fetch_one(&pool).await.unwrap().id;
+    let cat_id = sqlx::query!(
+        "INSERT INTO categories (name, category_type) VALUES ('Lazer', 'expense') RETURNING id"
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap()
+    .id;
+    let acc_id = sqlx::query!(
+        "INSERT INTO accounts (name, account_type) VALUES ('Conta', 'checking') RETURNING id"
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap()
+    .id;
 
     let budget = Budget::insert(
         &pool,

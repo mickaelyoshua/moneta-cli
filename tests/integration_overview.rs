@@ -18,11 +18,11 @@ async fn test_overview_handler(pool: PgPool) {
     // Let's check if AppContext can be created with a pool.
     // If not, we can just test the SQL query or the handler directly by instantiating Db.
     // Actually, Db fields are private usually. We can just test the models logic if we can't build AppContext.
-    
+
     // Let's just do a basic test for the DB setup
     let name = "Test Account Overview";
     let account_type = AccountType::Checking;
-    
+
     let _account = sqlx::query_as::<_, Account>(
         r#"
         INSERT INTO accounts (name, account_type, has_debit_card, active)

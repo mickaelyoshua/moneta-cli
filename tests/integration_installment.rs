@@ -73,7 +73,10 @@ async fn test_installment_insert_math(pool: PgPool) {
     .unwrap();
 
     assert_eq!(inst.installments_count, 3);
-    assert_eq!(inst.total_amount.as_decimal(), Decimal::from_str("10.00").unwrap());
+    assert_eq!(
+        inst.total_amount.as_decimal(),
+        Decimal::from_str("10.00").unwrap()
+    );
 
     // Verificar as transações geradas
     let mut txs = Transaction::find_all(&pool, None).await.unwrap();
@@ -83,17 +86,26 @@ async fn test_installment_insert_math(pool: PgPool) {
     txs.sort_by_key(|a| a.date);
 
     // Parcela 1
-    assert_eq!(txs[0].amount.as_decimal(), Decimal::from_str("3.33").unwrap());
+    assert_eq!(
+        txs[0].amount.as_decimal(),
+        Decimal::from_str("3.33").unwrap()
+    );
     assert_eq!(txs[0].installment_number, Some(1));
     assert_eq!(txs[0].date, NaiveDate::from_ymd_opt(2026, 7, 20).unwrap());
 
     // Parcela 2
-    assert_eq!(txs[1].amount.as_decimal(), Decimal::from_str("3.33").unwrap());
+    assert_eq!(
+        txs[1].amount.as_decimal(),
+        Decimal::from_str("3.33").unwrap()
+    );
     assert_eq!(txs[1].installment_number, Some(2));
     assert_eq!(txs[1].date, NaiveDate::from_ymd_opt(2026, 8, 20).unwrap());
 
     // Parcela 3 (resto vai para a última)
-    assert_eq!(txs[2].amount.as_decimal(), Decimal::from_str("3.34").unwrap());
+    assert_eq!(
+        txs[2].amount.as_decimal(),
+        Decimal::from_str("3.34").unwrap()
+    );
     assert_eq!(txs[2].installment_number, Some(3));
     assert_eq!(txs[2].date, NaiveDate::from_ymd_opt(2026, 9, 20).unwrap());
 }
@@ -127,10 +139,15 @@ async fn test_installment_adjust_and_delete(pool: PgPool) {
     .await
     .unwrap();
 
-    assert_eq!(adjusted_tx.amount.as_decimal(), Decimal::from_str("49.99").unwrap());
+    assert_eq!(
+        adjusted_tx.amount.as_decimal(),
+        Decimal::from_str("49.99").unwrap()
+    );
 
     // Verificar current_total da fatura
-    let current_total = Invoice::current_total(&pool, adjusted_tx.invoice_id.unwrap()).await.unwrap();
+    let current_total = Invoice::current_total(&pool, adjusted_tx.invoice_id.unwrap())
+        .await
+        .unwrap();
     assert_eq!(current_total, Decimal::from_str("49.99").unwrap());
 
     // 2. Fechar a fatura da primeira parcela
@@ -138,7 +155,10 @@ async fn test_installment_adjust_and_delete(pool: PgPool) {
 
     // 3. Tentar deletar o parcelamento (deve falhar pois a fatura 1 está fechada)
     let delete_result = Installment::delete(&pool, inst.id).await;
-    assert!(delete_result.is_err(), "Não deve permitir deletar parcelamento com fatura fechada");
+    assert!(
+        delete_result.is_err(),
+        "Não deve permitir deletar parcelamento com fatura fechada"
+    );
 
     // 4. Tentar ajustar a primeira parcela de novo (deve falhar pois a fatura está fechada)
     let adjust_result2 = Installment::adjust(
@@ -148,7 +168,10 @@ async fn test_installment_adjust_and_delete(pool: PgPool) {
         PositiveAmount::from_str("40.00").unwrap(),
     )
     .await;
-    assert!(adjust_result2.is_err(), "Não deve permitir ajustar parcela em fatura fechada");
+    assert!(
+        adjust_result2.is_err(),
+        "Não deve permitir ajustar parcela em fatura fechada"
+    );
 }
 
 #[sqlx::test]
@@ -171,5 +194,8 @@ async fn test_installment_insert_math_edge_case(pool: PgPool) {
     .await;
 
     // Deve ser um erro! Regra de negócio: Total Amount deve ser no mínimo 1 centavo por parcela (0.10)
-    assert!(inst_result.is_err(), "Deve falhar ao tentar parcelar valor menor que a quantidade de parcelas em centavos");
+    assert!(
+        inst_result.is_err(),
+        "Deve falhar ao tentar parcelar valor menor que a quantidade de parcelas em centavos"
+    );
 }

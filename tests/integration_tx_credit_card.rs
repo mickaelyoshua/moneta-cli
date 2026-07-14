@@ -55,7 +55,7 @@ async fn test_credit_card_transaction_updates_invoice(pool: PgPool) {
     // 2. Act: Insert TWO transactions on the same month
     let tx_date = NaiveDate::from_ymd_opt(2026, 7, 20).unwrap();
     let mut db_tx = pool.begin().await.unwrap();
-    
+
     let tx1 = Transaction::insert(
         &mut db_tx,
         NewTransaction {
@@ -97,9 +97,21 @@ async fn test_credit_card_transaction_updates_invoice(pool: PgPool) {
     db_tx.commit().await.unwrap();
 
     // 3. Assert
-    assert!(tx1.invoice_id.is_some(), "Transaction 1 deve estar associada a uma fatura");
-    assert_eq!(tx1.invoice_id, tx2.invoice_id, "Ambas devem estar na mesma fatura");
+    assert!(
+        tx1.invoice_id.is_some(),
+        "Transaction 1 deve estar associada a uma fatura"
+    );
+    assert_eq!(
+        tx1.invoice_id, tx2.invoice_id,
+        "Ambas devem estar na mesma fatura"
+    );
 
-    let current_total = Invoice::current_total(&pool, tx1.invoice_id.unwrap()).await.unwrap();
-    assert_eq!(current_total, Decimal::from_str("150.00").unwrap(), "Total da fatura deve ser a soma das transações");
+    let current_total = Invoice::current_total(&pool, tx1.invoice_id.unwrap())
+        .await
+        .unwrap();
+    assert_eq!(
+        current_total,
+        Decimal::from_str("150.00").unwrap(),
+        "Total da fatura deve ser a soma das transações"
+    );
 }

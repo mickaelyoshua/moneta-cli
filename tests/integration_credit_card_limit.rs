@@ -57,7 +57,9 @@ async fn test_used_limit_and_invoice_totals(pool: PgPool) {
         &mut tx,
         NewTransaction {
             category_id: Some(ctg.id),
-            source: TransactionSource::CreditCard { credit_card_id: card.id },
+            source: TransactionSource::CreditCard {
+                credit_card_id: card.id,
+            },
             transaction_type: TransactionType::Expense,
             amount: PositiveAmount::from_str("100.00").unwrap(),
             date: chrono::Utc::now().naive_local().date(),
@@ -75,7 +77,9 @@ async fn test_used_limit_and_invoice_totals(pool: PgPool) {
         &mut tx,
         NewTransaction {
             category_id: Some(ctg.id),
-            source: TransactionSource::CreditCard { credit_card_id: card.id },
+            source: TransactionSource::CreditCard {
+                credit_card_id: card.id,
+            },
             transaction_type: TransactionType::Income, // Refund
             amount: PositiveAmount::from_str("30.00").unwrap(),
             date: chrono::Utc::now().naive_local().date(),
@@ -87,7 +91,7 @@ async fn test_used_limit_and_invoice_totals(pool: PgPool) {
     )
     .await
     .unwrap();
-    
+
     tx.commit().await.unwrap();
 
     // Verificar `used_limit` (esperado: 70)
@@ -99,10 +103,10 @@ async fn test_used_limit_and_invoice_totals(pool: PgPool) {
         .fetch_all(&pool)
         .await
         .unwrap();
-    
+
     assert_eq!(invoices.len(), 1);
     let invoice = &invoices[0];
-    
+
     // Verificar total atual da fatura (esperado: 70)
     let current_total = Invoice::current_total(&pool, invoice.id).await.unwrap();
     assert_eq!(current_total, Decimal::from_str("70.00").unwrap());
@@ -111,5 +115,8 @@ async fn test_used_limit_and_invoice_totals(pool: PgPool) {
     let closed = Invoice::close(&pool, card.id, invoice.month, invoice.year)
         .await
         .unwrap();
-    assert_eq!(closed.closing_amount, Some(Decimal::from_str("70.00").unwrap()));
+    assert_eq!(
+        closed.closing_amount,
+        Some(Decimal::from_str("70.00").unwrap())
+    );
 }

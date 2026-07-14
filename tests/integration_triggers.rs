@@ -18,10 +18,13 @@ async fn test_auto_updated_at(pool: PgPool) {
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
     // Trigger an update
-    sqlx::query!("UPDATE categories SET name = 'Updated' WHERE id = $1", inserted.id)
-        .execute(&pool)
-        .await
-        .unwrap();
+    sqlx::query!(
+        "UPDATE categories SET name = 'Updated' WHERE id = $1",
+        inserted.id
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
 
     let updated = sqlx::query_as::<_, Category>("SELECT * FROM categories WHERE id = $1")
         .bind(inserted.id)
@@ -33,6 +36,9 @@ async fn test_auto_updated_at(pool: PgPool) {
 
     println!("Old: {}", old_updated_at);
     println!("New: {}", new_updated_at);
-    
-    assert!(new_updated_at > old_updated_at, "updated_at should have increased");
+
+    assert!(
+        new_updated_at > old_updated_at,
+        "updated_at should have increased"
+    );
 }

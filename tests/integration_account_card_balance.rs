@@ -1,7 +1,9 @@
 use moneta_cli::models::account::{Account, NewAccount};
 use moneta_cli::models::category::{Category, NewCategory};
 use moneta_cli::models::credit_card::{CreditCard, NewCreditCard};
-use moneta_cli::models::types::{AccountType, CategoryType, DayOfMonth, NonEmptyString, NonNegativeAmount};
+use moneta_cli::models::types::{
+    AccountType, CategoryType, DayOfMonth, NonEmptyString, NonNegativeAmount,
+};
 use rust_decimal::Decimal;
 use sqlx::PgPool;
 use std::str::FromStr;
@@ -70,5 +72,9 @@ async fn test_balance_ignores_credit_card_expenses(pool: PgPool) {
 
     // 3. Assert: O saldo da conta deve ser 1000, e NÃO 700. O cartão ainda não foi pago.
     let balance = Account::balance(&pool, acc.id).await.unwrap();
-    assert_eq!(balance.balance, Decimal::from_str("1000.00").unwrap(), "Saldo não deve descontar faturas abertas");
+    assert_eq!(
+        balance.balance,
+        Decimal::from_str("1000.00").unwrap(),
+        "Saldo não deve descontar faturas abertas"
+    );
 }

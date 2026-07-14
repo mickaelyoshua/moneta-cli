@@ -66,19 +66,29 @@ async fn test_credit_card_crud(pool: PgPool) {
     assert_eq!(cards[0].id, card.id);
 
     // find_by_id
-    let mut fetched_card = CreditCard::find_by_id(&pool, card.id).await.expect("Failed to find_by_id");
+    let mut fetched_card = CreditCard::find_by_id(&pool, card.id)
+        .await
+        .expect("Failed to find_by_id");
     assert_eq!(fetched_card.name.as_str(), "My Credit Card");
 
     // update
-    fetched_card.name = moneta_cli::models::types::NonEmptyString::from_str("Updated Card").unwrap();
-    let updated_card = fetched_card.update(&pool).await.expect("Failed to update card");
+    fetched_card.name =
+        moneta_cli::models::types::NonEmptyString::from_str("Updated Card").unwrap();
+    let updated_card = fetched_card
+        .update(&pool)
+        .await
+        .expect("Failed to update card");
     assert_eq!(updated_card.name.as_str(), "Updated Card");
 
     // delete
-    let deleted = CreditCard::delete(&pool, card.id).await.expect("Failed to delete card");
+    let deleted = CreditCard::delete(&pool, card.id)
+        .await
+        .expect("Failed to delete card");
     assert!(deleted);
 
-    let cards_after_delete = CreditCard::find_all(&pool, None).await.expect("Failed to fetch cards");
+    let cards_after_delete = CreditCard::find_all(&pool, None)
+        .await
+        .expect("Failed to fetch cards");
     assert_eq!(cards_after_delete.len(), 0);
 }
 

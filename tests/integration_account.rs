@@ -46,18 +46,28 @@ async fn test_account_crud(pool: PgPool) {
     assert_eq!(accounts[0].id, account.id);
 
     // find_by_id
-    let mut fetched_account = Account::find_by_id(&pool, account.id).await.expect("Failed to find_by_id");
+    let mut fetched_account = Account::find_by_id(&pool, account.id)
+        .await
+        .expect("Failed to find_by_id");
     assert_eq!(fetched_account.name.as_str(), "Test Account");
 
     // update
-    fetched_account.name = moneta_cli::models::types::NonEmptyString::from_str("Updated Account").unwrap();
-    let updated_account = fetched_account.update(&pool).await.expect("Failed to update account");
+    fetched_account.name =
+        moneta_cli::models::types::NonEmptyString::from_str("Updated Account").unwrap();
+    let updated_account = fetched_account
+        .update(&pool)
+        .await
+        .expect("Failed to update account");
     assert_eq!(updated_account.name.as_str(), "Updated Account");
 
     // delete
-    let deleted = Account::delete(&pool, account.id).await.expect("Failed to delete account");
+    let deleted = Account::delete(&pool, account.id)
+        .await
+        .expect("Failed to delete account");
     assert!(deleted);
 
-    let accounts_after_delete = Account::find_all(&pool, None).await.expect("Failed to fetch accounts");
+    let accounts_after_delete = Account::find_all(&pool, None)
+        .await
+        .expect("Failed to fetch accounts");
     assert_eq!(accounts_after_delete.len(), 0);
 }

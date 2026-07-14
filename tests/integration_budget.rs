@@ -22,10 +22,20 @@ async fn test_budget_creation_and_constraints(pool: PgPool) {
 
 #[sqlx::test]
 async fn test_budget_current_spend(pool: PgPool) {
-    let cat_id = sqlx::query!("INSERT INTO categories (name, category_type) VALUES ('Lazer', 'expense') RETURNING id")
-        .fetch_one(&pool).await.unwrap().id;
-    let acc_id = sqlx::query!("INSERT INTO accounts (name, account_type) VALUES ('Conta', 'checking') RETURNING id")
-        .fetch_one(&pool).await.unwrap().id;
+    let cat_id = sqlx::query!(
+        "INSERT INTO categories (name, category_type) VALUES ('Lazer', 'expense') RETURNING id"
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap()
+    .id;
+    let acc_id = sqlx::query!(
+        "INSERT INTO accounts (name, account_type) VALUES ('Conta', 'checking') RETURNING id"
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap()
+    .id;
 
     let budget = Budget::insert(
         &pool,
@@ -57,7 +67,7 @@ async fn test_budget_current_spend(pool: PgPool) {
         .await
         .unwrap();
     }
-    
+
     Transaction::insert(
         &mut db_tx,
         NewTransaction {
