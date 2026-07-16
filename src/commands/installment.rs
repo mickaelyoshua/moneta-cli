@@ -31,6 +31,8 @@ pub enum InstallmentCmd {
 pub enum InstallmentError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
+    #[error("Model error: {0}")]
+    Model(#[from] crate::models::ModelError),
     #[error("Parse error: {0}")]
     Parse(String),
 }
@@ -80,8 +82,8 @@ impl InstallmentCmd {
                     println!("Transações:");
                     for tx in res.transactions {
                         println!(
-                            "- Parcela {:?}: {} ({})",
-                            tx.installment_number,
+                            "- Parcela {}: {} ({})",
+                            tx.installment_number.as_ref().map(|n| n.to_string()).unwrap_or_else(|| "?".to_string()),
                             tx.amount.as_decimal(),
                             tx.date
                         );
@@ -123,7 +125,7 @@ pub struct AddInstallmentArgs {
 
     /// Number of installments
     #[arg(short, long)]
-    pub installments_count: i16,
+    pub installments_count: crate::models::types::InstallmentCount,
 
     /// Purchase date (YYYY-MM-DD format). Default: today
     #[arg(long)]
@@ -137,7 +139,7 @@ pub struct AdjustInstallmentArgs {
 
     /// Installment number to be adjusted (e.g., 1, 2, 3)
     #[arg(short, long)]
-    pub number: i16,
+    pub number: crate::models::types::InstallmentNumber,
 
     /// New exact value of the installment (e.g., 33.34)
     #[arg(short, long)]

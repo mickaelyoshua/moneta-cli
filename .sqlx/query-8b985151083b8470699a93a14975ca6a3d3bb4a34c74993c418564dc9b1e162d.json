@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT COALESCE(SUM(vt.account_effect), 0) AS balance\n            FROM transactions t\n            INNER JOIN v_transaction_totals vt ON vt.transaction_id = t.id\n            WHERE t.account_id = $1 AND t.status = 'cleared'\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "balance",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "8b985151083b8470699a93a14975ca6a3d3bb4a34c74993c418564dc9b1e162d"
+}

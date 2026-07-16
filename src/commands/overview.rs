@@ -1,10 +1,6 @@
-use clap::Parser;
-use crate::{
-    context::AppContext,
-    error::AppError,
-    handlers::overview::handle_overview,
-};
+use crate::{context::AppContext, error::AppError, handlers::overview::handle_overview};
 use chrono::NaiveDate;
+use clap::Parser;
 
 #[derive(Parser, Debug)]
 pub struct OverviewCmd {
@@ -15,7 +11,7 @@ pub struct OverviewCmd {
 impl OverviewCmd {
     pub async fn handle(self, ctx: &AppContext) -> Result<(), AppError> {
         let response = handle_overview(ctx, self.date).await?;
-        crate::handlers::render_success(ctx, &response);
+        crate::commands::render_success(ctx, &response);
         Ok(())
     }
 }

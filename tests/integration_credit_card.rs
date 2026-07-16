@@ -23,8 +23,8 @@ async fn test_credit_card_crud(pool: PgPool) {
 
     let card_name = "My Credit Card";
     let credit_limit = moneta_cli::models::types::NonNegativeAmount::from_str("5000.0").unwrap();
-    let billing_day = 10i16;
-    let due_day = 20i16;
+    let billing_day = moneta_cli::models::types::DayOfMonth::from_str("10").unwrap();
+    let due_day = moneta_cli::models::types::DayOfMonth::from_str("20").unwrap();
 
     let card = sqlx::query_as::<_, CreditCard>(
         r#"
@@ -106,8 +106,8 @@ async fn test_credit_card_fk_violation(pool: PgPool) {
     .bind(9999)
     .bind("Invalid Card")
     .bind(credit_limit)
-    .bind(10i16)
-    .bind(20i16)
+    .bind(moneta_cli::models::types::DayOfMonth::from_str("10").unwrap())
+    .bind(moneta_cli::models::types::DayOfMonth::from_str("20").unwrap())
     .bind(true)
     .execute(&pool)
     .await;

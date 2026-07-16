@@ -1,7 +1,7 @@
 use super::types::{
     NonEmptyString, PositiveAmount, RecurrenceFrequency, TransactionSource, TransactionType,
 };
-use chrono::{DateTime, Datelike, NaiveDate, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
@@ -50,7 +50,7 @@ pub struct UpdateRecurrencePayload {
 }
 
 impl Recurrence {
-    pub async fn insert(pool: &sqlx::PgPool, new: NewRecurrence) -> Result<Self, sqlx::Error> {
+    pub async fn insert(pool: &sqlx::PgPool, new: NewRecurrence) -> Result<Self, crate::models::ModelError> {
         let (account_id, credit_card_id) = match new.source {
             TransactionSource::Account { account_id } => (Some(account_id), None),
             TransactionSource::CreditCard { credit_card_id } => (None, Some(credit_card_id)),
@@ -75,15 +75,17 @@ impl Recurrence {
         .bind(new.end_date)
         .fetch_one(pool)
         .await
+        .map_err(Into::into)
     }
 
-    pub async fn find_all(pool: &sqlx::PgPool) -> Result<Vec<Self>, sqlx::Error> {
+    pub async fn find_all(pool: &sqlx::PgPool) -> Result<Vec<Self>, crate::models::ModelError> {
         sqlx::query_as::<_, Self>("SELECT * FROM recurrences ORDER BY start_date DESC")
             .fetch_all(pool)
             .await
+            .map_err(Into::into)
     }
 
-    pub async fn delete(pool: &sqlx::PgPool, id: i32) -> Result<(), sqlx::Error> {
+    pub async fn delete(pool: &sqlx::PgPool, id: i32) -> Result<(), crate::models::ModelError> {
         sqlx::query!("DELETE FROM recurrences WHERE id = $1", id)
             .execute(pool)
             .await?;
@@ -94,7 +96,7 @@ impl Recurrence {
         pool: &sqlx::PgPool,
         id: i32,
         payload: UpdateRecurrencePayload,
-    ) -> Result<Self, sqlx::Error> {
+    ) -> Result<Self, crate::models::ModelError> {
         let mut db_tx = pool.begin().await?;
 
         let old = sqlx::query_as::<_, Self>("SELECT * FROM recurrences WHERE id = $1 FOR UPDATE")
@@ -104,7 +106,7 @@ impl Recurrence {
 
         let old = match old {
             Some(t) => t,
-            None => return Err(sqlx::Error::RowNotFound),
+            None => return Err(crate::models::ModelError::NotFound),
         };
 
         let mut next_account_id = match old.source {
@@ -158,7 +160,7 @@ impl Recurrence {
         Ok(row)
     }
 
-    pub async fn sync_all(pool: &sqlx::PgPool, ref_date: NaiveDate) -> Result<usize, sqlx::Error> {
+    pub async fn sync_all(pool: &sqlx::PgPool, ref_date: NaiveDate) -> Result<usize, crate::models::ModelError> {
         let mut db_tx = pool.begin().await?;
 
         let recurrences = sqlx::query_as::<_, Self>(
@@ -241,38 +243,22 @@ impl Recurrence {
     }
 
     fn next_date(&self, from: NaiveDate) -> NaiveDate {
+        use chrono::Datelike;
         match self.frequency {
-            RecurrenceFrequency::Daily => from + chrono::Duration::days(1),
-            RecurrenceFrequency::Weekly => from + chrono::Duration::days(7),
+            RecurrenceFrequency::Daily => from + chrono::Days::new(1),
+            RecurrenceFrequency::Weekly => from + chrono::Days::new(7),
             RecurrenceFrequency::Monthly => {
-                let mut y = from.year();
                 let mut m = from.month() + 1;
+                let mut y = from.year();
                 if m > 12 {
                     m = 1;
                     y += 1;
                 }
-                NaiveDate::from_ymd_opt(y, m, from.day()).unwrap_or_else(|| {
-                    let mut nm = m + 1;
-                    let mut ny = y;
-                    if nm > 12 {
-                        nm = 1;
-                        ny += 1;
-                    }
-                    NaiveDate::from_ymd_opt(ny, nm, 1).unwrap() - chrono::Duration::days(1)
-                })
+                crate::models::safe_from_ymd(y, m, self.start_date.day())
             }
             RecurrenceFrequency::Yearly => {
                 let y = from.year() + 1;
-                let m = from.month();
-                NaiveDate::from_ymd_opt(y, m, from.day()).unwrap_or_else(|| {
-                    let mut nm = m + 1;
-                    let mut ny = y;
-                    if nm > 12 {
-                        nm = 1;
-                        ny += 1;
-                    }
-                    NaiveDate::from_ymd_opt(ny, nm, 1).unwrap() - chrono::Duration::days(1)
-                })
+                crate::models::safe_from_ymd(y, from.month(), self.start_date.day())
             }
         }
     }

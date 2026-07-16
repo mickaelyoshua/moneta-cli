@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE recurrences SET last_processed_date = $1 WHERE id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Date",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "564c69a1b2cb82fb50ec5e41139960b50e1bd0ef0263eddf3c4b4cc0244ad547"
+}

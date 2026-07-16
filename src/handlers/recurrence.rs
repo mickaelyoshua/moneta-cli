@@ -6,6 +6,8 @@ use chrono::Local;
 pub enum RecurrenceError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
+    #[error("Model error: {0}")]
+    Model(#[from] crate::models::ModelError),
 }
 
 pub async fn add(ctx: &AppContext, new_rec: NewRecurrence) -> Result<Recurrence, RecurrenceError> {

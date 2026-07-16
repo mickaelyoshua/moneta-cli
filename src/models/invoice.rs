@@ -1,4 +1,4 @@
-use super::types::InvoiceStatus;
+use super::types::{InvoiceStatus, Month, Year};
 use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use serde::Serialize;
@@ -8,8 +8,8 @@ use sqlx::FromRow;
 pub struct Invoice {
     pub id: i32,
     pub credit_card_id: i32,
-    pub month: i16,
-    pub year: i16,
+    pub month: Month,
+    pub year: Year,
     pub status: InvoiceStatus,
     pub closing_amount: Option<Decimal>,
     pub due_date: NaiveDate,
@@ -58,8 +58,10 @@ impl Invoice {
             invoice_date = invoice_date + chrono::Months::new(1);
         }
 
-        let month = invoice_date.month() as i16;
-        let year = invoice_date.year() as i16;
+        let month = Month::try_from(invoice_date.month() as i16)
+            .map_err(|e| sqlx::Error::Decode(e.into()))?;
+        let year = Year::try_from(invoice_date.year() as i16)
+            .map_err(|e| sqlx::Error::Decode(e.into()))?;
 
         let existing = sqlx::query_as::<_, Self>(
             r#"SELECT * FROM invoices WHERE credit_card_id = $1 AND month = $2 AND year = $3"#,
@@ -74,15 +76,15 @@ impl Invoice {
             return Ok(inv);
         }
 
-        let mut due_month = month as u32;
-        let mut due_year = year as i32;
+        let mut due_month = month.as_i16() as u32;
+        let mut due_year = year.as_i16() as i32;
         if card.due_day < card.billing_day {
-            let next =
-                NaiveDate::from_ymd_opt(due_year, due_month, 1).unwrap() + chrono::Months::new(1);
+            let next = NaiveDate::from_ymd_opt(due_year, due_month, 1).expect("Day 1 is always valid")
+                + chrono::Months::new(1);
             due_month = next.month();
             due_year = next.year();
         }
-        let due_date = NaiveDate::from_ymd_opt(due_year, due_month, card.due_day as u32).unwrap();
+        let due_date = crate::models::types::safe_from_ymd(due_year, due_month, card.due_day as u32);
 
         sqlx::query_as::<_, Self>(
             r#"
@@ -102,19 +104,17 @@ impl Invoice {
     pub async fn close(
         pool: &sqlx::PgPool,
         credit_card_id: i32,
-        month: i16,
-        year: i16,
+        month: Month,
+        year: Year,
     ) -> Result<Self, sqlx::Error> {
         sqlx::query_as::<_, Self>(
             r#"
             UPDATE invoices 
             SET status = 'closed', closing_amount = COALESCE((
-                SELECT SUM(
-                    CASE 
-                        WHEN transaction_type = 'income' THEN -amount 
-                        ELSE amount 
-                    END
-                ) FROM transactions WHERE invoice_id = invoices.id
+                SELECT SUM(vt.expense_effect)
+                FROM transactions t
+                INNER JOIN v_transaction_totals vt ON vt.transaction_id = t.id
+                WHERE t.invoice_id = invoices.id
             ), 0)
             WHERE credit_card_id = $1 AND month = $2 AND year = $3 AND status = 'open'
             RETURNING *
@@ -130,8 +130,8 @@ impl Invoice {
     pub async fn pay(
         pool: &sqlx::PgPool,
         credit_card_id: i32,
-        month: i16,
-        year: i16,
+        month: Month,
+        year: Year,
         account_id: i32,
     ) -> Result<Self, sqlx::Error> {
         let mut tx = pool.begin().await?;
@@ -159,7 +159,7 @@ impl Invoice {
             "#,
             account_id,
             invoice.closing_amount.unwrap_or(Decimal::ZERO),
-            format!("Pagamento Fatura {}/{}", month, year)
+            format!("Pagamento Fatura {}/{}", month.as_i16(), year.as_i16())
         )
         .execute(&mut *tx)
         .await?;
@@ -172,8 +172,8 @@ impl Invoice {
     pub async fn reopen(
         pool: &sqlx::PgPool,
         credit_card_id: i32,
-        month: i16,
-        year: i16,
+        month: Month,
+        year: Year,
     ) -> Result<Self, sqlx::Error> {
         sqlx::query_as::<_, Self>(
             r#"
@@ -196,14 +196,10 @@ impl Invoice {
     ) -> Result<Decimal, sqlx::Error> {
         let row = sqlx::query!(
             r#"
-            SELECT COALESCE(SUM(
-                CASE 
-                    WHEN transaction_type = 'income' THEN -amount 
-                    ELSE amount 
-                END
-            ), 0) AS total
-            FROM transactions
-            WHERE invoice_id = $1
+            SELECT COALESCE(SUM(vt.expense_effect), 0) AS total
+            FROM transactions t
+            INNER JOIN v_transaction_totals vt ON vt.transaction_id = t.id
+            WHERE t.invoice_id = $1
             "#,
             invoice_id
         )
@@ -211,5 +207,46 @@ impl Invoice {
         .await?;
 
         Ok(row.total.unwrap_or(Decimal::ZERO))
+    }
+
+    pub async fn get_open_overviews_by_card(
+        pool: &sqlx::PgPool,
+        credit_card_id: i32,
+    ) -> Result<Vec<crate::models::overview::InvoiceOverview>, sqlx::Error> {
+        let rows = sqlx::query!(
+            r#"
+            SELECT 
+                i.month, 
+                i.year, 
+                i.status as "status: InvoiceStatus", 
+                COALESCE(SUM(vt.expense_effect), 0) as total
+            FROM invoices i
+            LEFT JOIN transactions t ON t.invoice_id = i.id
+            LEFT JOIN v_transaction_totals vt ON vt.transaction_id = t.id
+            WHERE i.credit_card_id = $1
+            GROUP BY i.id
+            HAVING COALESCE(SUM(vt.expense_effect), 0) != 0
+            ORDER BY i.year ASC, i.month ASC
+            "#,
+            credit_card_id
+        )
+        .fetch_all(pool)
+        .await?;
+
+        let mut overviews = Vec::new();
+        for row in rows {
+            let m = crate::models::types::Month::try_from(row.month)
+                .map_err(|e| sqlx::Error::Decode(e.into()))?;
+            let y = crate::models::types::Year::try_from(row.year)
+                .map_err(|e| sqlx::Error::Decode(e.into()))?;
+            overviews.push(crate::models::overview::InvoiceOverview {
+                month: m,
+                year: y,
+                status: row.status,
+                amount: row.total.unwrap_or(rust_decimal::Decimal::ZERO),
+            });
+        }
+
+        Ok(overviews)
     }
 }

@@ -52,6 +52,18 @@ impl std::str::FromStr for PositiveAmount {
     }
 }
 
+impl TryFrom<Decimal> for PositiveAmount {
+    type Error = &'static str;
+
+    fn try_from(dec: Decimal) -> Result<Self, Self::Error> {
+        if dec > Decimal::ZERO {
+            Ok(PositiveAmount(dec))
+        } else {
+            Err("Valor deve ser maior que zero")
+        }
+    }
+}
+
 impl<'de> Deserialize<'de> for PositiveAmount {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -104,6 +116,18 @@ impl std::str::FromStr for NonNegativeAmount {
     }
 }
 
+impl TryFrom<Decimal> for NonNegativeAmount {
+    type Error = &'static str;
+
+    fn try_from(dec: Decimal) -> Result<Self, Self::Error> {
+        if dec >= Decimal::ZERO {
+            Ok(NonNegativeAmount(dec))
+        } else {
+            Err("Valor não pode ser negativo")
+        }
+    }
+}
+
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum, sqlx::Type,
 )]
@@ -138,6 +162,7 @@ pub enum InvoiceStatus {
 #[sqlx(type_name = "account_type_enum", rename_all = "lowercase")]
 pub enum AccountType {
     Checking,
+    Savings,
 }
 
 #[derive(
@@ -218,6 +243,226 @@ pub enum TransactionSource {
     CreditCard { credit_card_id: i32 },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, sqlx::Type)]
+#[serde(transparent)]
+#[sqlx(transparent)]
+pub struct InstallmentCount(i16);
+
+impl InstallmentCount {
+    pub fn get(&self) -> i16 {
+        self.0
+    }
+}
+
+impl std::str::FromStr for InstallmentCount {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let val: i16 = s.parse().map_err(|_| "Número inválido")?;
+        if val > 0 {
+            Ok(InstallmentCount(val))
+        } else {
+            Err("O número de parcelas deve ser maior que zero")
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for InstallmentCount {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let val = <i16 as Deserialize>::deserialize(deserializer)?;
+        if val > 0 {
+            Ok(InstallmentCount(val))
+        } else {
+            Err(serde::de::Error::custom("Parcelas devem ser > 0"))
+        }
+    }
+}
+
+impl TryFrom<i16> for InstallmentCount {
+    type Error = &'static str;
+
+    fn try_from(value: i16) -> Result<Self, Self::Error> {
+        if value > 0 {
+            Ok(InstallmentCount(value))
+        } else {
+            Err("O número de parcelas deve ser maior que zero")
+        }
+    }
+}
+
+impl std::fmt::Display for InstallmentCount {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, sqlx::Type)]
+#[serde(transparent)]
+#[sqlx(transparent)]
+pub struct InstallmentNumber(i16);
+
+impl InstallmentNumber {
+    pub fn get(&self) -> i16 {
+        self.0
+    }
+}
+
+impl std::str::FromStr for InstallmentNumber {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let val: i16 = s.parse().map_err(|_| "Número inválido")?;
+        if val > 0 {
+            Ok(InstallmentNumber(val))
+        } else {
+            Err("O número da parcela deve ser maior que zero")
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for InstallmentNumber {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let val = <i16 as Deserialize>::deserialize(deserializer)?;
+        if val > 0 {
+            Ok(InstallmentNumber(val))
+        } else {
+            Err(serde::de::Error::custom("Número da parcela deve ser > 0"))
+        }
+    }
+}
+
+impl TryFrom<i16> for InstallmentNumber {
+    type Error = &'static str;
+
+    fn try_from(value: i16) -> Result<Self, Self::Error> {
+        if value > 0 {
+            Ok(InstallmentNumber(value))
+        } else {
+            Err("O número da parcela deve ser maior que zero")
+        }
+    }
+}
+
+impl std::fmt::Display for InstallmentNumber {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, sqlx::Type)]
+#[serde(transparent)]
+#[sqlx(transparent)]
+pub struct Month(i16);
+
+impl Month {
+    pub fn as_i16(&self) -> i16 {
+        self.0
+    }
+}
+
+impl std::str::FromStr for Month {
+    type Err = &'static str;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let val: i16 = s.parse().map_err(|_| "Número inválido")?;
+        if (1..=12).contains(&val) {
+            Ok(Month(val))
+        } else {
+            Err("Mês deve ser entre 1 e 12")
+        }
+    }
+}
+
+impl TryFrom<i16> for Month {
+    type Error = &'static str;
+    fn try_from(val: i16) -> Result<Self, Self::Error> {
+        if (1..=12).contains(&val) {
+            Ok(Month(val))
+        } else {
+            Err("Mês deve ser entre 1 e 12")
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for Month {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let val = <i16 as Deserialize>::deserialize(deserializer)?;
+        if (1..=12).contains(&val) {
+            Ok(Month(val))
+        } else {
+            Err(serde::de::Error::custom("Mês deve ser entre 1 e 12"))
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, sqlx::Type)]
+#[serde(transparent)]
+#[sqlx(transparent)]
+pub struct Year(i16);
+
+impl Year {
+    pub fn as_i16(&self) -> i16 {
+        self.0
+    }
+}
+
+impl std::str::FromStr for Year {
+    type Err = &'static str;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let val: i16 = s.parse().map_err(|_| "Número inválido")?;
+        if val >= 2000 {
+            Ok(Year(val))
+        } else {
+            Err("Ano deve ser >= 2000")
+        }
+    }
+}
+
+impl TryFrom<i16> for Year {
+    type Error = &'static str;
+    fn try_from(val: i16) -> Result<Self, Self::Error> {
+        if val >= 2000 {
+            Ok(Year(val))
+        } else {
+            Err("Ano deve ser >= 2000")
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for Year {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let val = <i16 as Deserialize>::deserialize(deserializer)?;
+        if val >= 2000 {
+            Ok(Year(val))
+        } else {
+            Err(serde::de::Error::custom("Ano deve ser >= 2000"))
+        }
+    }
+}
+
+pub fn safe_from_ymd(year: i32, month: u32, day: u32) -> chrono::NaiveDate {
+    chrono::NaiveDate::from_ymd_opt(year, month, day).unwrap_or_else(|| {
+        let mut nm = month + 1;
+        let mut ny = year;
+        if nm > 12 {
+            nm = 1;
+            ny += 1;
+        }
+        chrono::NaiveDate::from_ymd_opt(ny, nm, 1).unwrap_or_default() - chrono::Duration::days(1)
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -226,7 +471,7 @@ mod tests {
     #[test]
     fn test_non_empty_string_valid() {
         assert!(NonEmptyString::from_str("valid").is_ok());
-        assert!(NonEmptyString::from_str("  valid  ").is_ok()); // Trims or accepts? Current implementation might just check empty, but let's see.
+        assert!(NonEmptyString::from_str("  valid  ").is_ok());
     }
 
     #[test]

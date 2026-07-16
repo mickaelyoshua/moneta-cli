@@ -10,6 +10,8 @@ pub enum TransactionError {
     Database(#[from] sqlx::Error),
     #[error("Serialization error: {0}")]
     Json(#[from] serde_json::Error),
+    #[error("Model error: {0}")]
+    Model(#[from] crate::models::ModelError),
 }
 #[derive(Debug, Subcommand)]
 pub enum TransactionCmd {
@@ -112,8 +114,7 @@ impl TryFrom<AddTransactionArgs> for crate::models::transaction::NewTransaction 
             .tags
             .map(|t| {
                 t.split(',')
-                    .map(|s| s.trim().to_string())
-                    .filter(|s| !s.is_empty())
+                    .filter_map(|s| s.trim().parse::<crate::models::types::NonEmptyString>().ok())
                     .collect()
             })
             .unwrap_or_default();

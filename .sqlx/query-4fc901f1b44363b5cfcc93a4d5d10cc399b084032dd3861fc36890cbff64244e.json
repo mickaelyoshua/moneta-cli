@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT COALESCE(SUM(vt.expense_effect), 0) AS used\n            FROM transactions t\n            INNER JOIN v_transaction_totals vt ON vt.transaction_id = t.id\n            LEFT JOIN invoices i ON t.invoice_id = i.id\n            WHERE t.credit_card_id = $1 \n              AND (i.status IS NULL OR i.status != 'paid')\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "used",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "4fc901f1b44363b5cfcc93a4d5d10cc399b084032dd3861fc36890cbff64244e"
+}

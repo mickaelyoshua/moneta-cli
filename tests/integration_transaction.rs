@@ -1,6 +1,6 @@
 use moneta_cli::models::transaction::{NewTransaction, Transaction};
 use moneta_cli::models::types::{
-    NonEmptyString, PositiveAmount, TransactionSource, TransactionType,
+    InstallmentCount, Month, Year, NonEmptyString, PositiveAmount, TransactionSource, TransactionType,
 };
 use rust_decimal::Decimal;
 use sqlx::{PgPool, Row};
@@ -183,7 +183,7 @@ async fn test_transaction_update_delete_constraints(pool: PgPool) {
             category_id: Some(ctg_id),
             description: NonEmptyString::from_str("TV").unwrap(),
             total_amount: PositiveAmount::from_str("100.00").unwrap(),
-            installments_count: 2,
+            installments_count: InstallmentCount::try_from(2).unwrap(),
             date: chrono::NaiveDate::from_ymd_opt(2026, 7, 7).unwrap(),
         },
     )
@@ -247,7 +247,7 @@ async fn test_transaction_update_delete_constraints(pool: PgPool) {
     db_tx.commit().await.unwrap();
 
     // Fechar fatura
-    moneta_cli::models::invoice::Invoice::close(&pool, card_id, 7, 2026)
+    moneta_cli::models::invoice::Invoice::close(&pool, card_id, Month::try_from(7).unwrap(), Year::try_from(2026).unwrap())
         .await
         .unwrap();
 

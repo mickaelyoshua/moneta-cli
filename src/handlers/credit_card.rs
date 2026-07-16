@@ -33,10 +33,10 @@ pub async fn update(
         card.credit_limit = credit_limit;
     }
     if let Some(billing_day) = args.billing_day {
-        card.billing_day = billing_day.as_i16();
+        card.billing_day = billing_day;
     }
     if let Some(due_day) = args.due_day {
-        card.due_day = due_day.as_i16();
+        card.due_day = due_day;
     }
     if let Some(inactive) = args.inactive {
         card.active = !inactive;

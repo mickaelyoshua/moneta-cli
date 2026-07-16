@@ -1,4 +1,4 @@
-use super::types::{NonEmptyString, PositiveAmount};
+use super::types::{InstallmentCount, InstallmentNumber, NonEmptyString, PositiveAmount};
 use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use serde::Serialize;
@@ -11,7 +11,7 @@ pub struct Installment {
     pub credit_card_id: i32,
     pub description: NonEmptyString,
     pub total_amount: PositiveAmount,
-    pub installments_count: i16,
+    pub installments_count: InstallmentCount,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -28,7 +28,7 @@ pub struct NewInstallment {
     pub category_id: Option<i32>,
     pub description: NonEmptyString,
     pub total_amount: PositiveAmount,
-    pub installments_count: i16,
+    pub installments_count: InstallmentCount,
     pub date: NaiveDate,
 }
 
@@ -36,7 +36,7 @@ impl Installment {
     pub async fn insert(
         pool: &sqlx::PgPool,
         new_inst: NewInstallment,
-    ) -> Result<Self, sqlx::Error> {
+    ) -> Result<Self, crate::models::ModelError> {
         let mut tx = pool.begin().await?;
 
         // 1. Insert base installment
@@ -50,43 +50,42 @@ impl Installment {
         .bind(new_inst.credit_card_id)
         .bind(new_inst.description.as_str())
         .bind(new_inst.total_amount.as_decimal())
-        .bind(new_inst.installments_count)
+        .bind(new_inst.installments_count.get())
         .fetch_one(&mut *tx)
         .await?;
 
         // 2. Apportionment logic (remainder in last installment)
         let total = new_inst.total_amount.as_decimal();
-        let count_dec = Decimal::from_str(&new_inst.installments_count.to_string()).unwrap();
+        let count_dec = Decimal::from(new_inst.installments_count.get());
 
         let base_amount = (total / count_dec).trunc_with_scale(2);
 
         // Check if base is 0
         if base_amount == Decimal::ZERO {
-            return Err(sqlx::Error::Protocol(
+            return Err(crate::models::ModelError::BusinessLogic(
                 "Installment amount too small for this count (min 0.01/installment).".into(),
             ));
         }
 
-        let total_base = base_amount
-            * Decimal::from_str(&(new_inst.installments_count - 1).to_string()).unwrap();
+        let total_base = base_amount * Decimal::from(new_inst.installments_count.get() - 1);
         let last_amount = total - total_base;
 
         // 3. Generate monthly transactions
-        for i in 1..=new_inst.installments_count {
+        for i in 1..=new_inst.installments_count.get() {
             let tx_date = new_inst.date + chrono::Months::new((i - 1) as u32);
-            let tx_amount = if i == new_inst.installments_count {
-                PositiveAmount::from_str(&last_amount.to_string()).unwrap()
+            let tx_amount = if i == new_inst.installments_count.get() {
+                PositiveAmount::try_from(last_amount).map_err(|e| crate::models::ModelError::BusinessLogic(e.into()))?
             } else {
-                PositiveAmount::from_str(&base_amount.to_string()).unwrap()
+                PositiveAmount::try_from(base_amount).map_err(|e| crate::models::ModelError::BusinessLogic(e.into()))?
             };
 
             let tx_desc = NonEmptyString::from_str(&format!(
                 "{} ({}/{})",
                 new_inst.description.as_str(),
                 i,
-                new_inst.installments_count
+                new_inst.installments_count.get()
             ))
-            .unwrap();
+            .map_err(|e| crate::models::ModelError::BusinessLogic(e.into()))?;
 
             let new_tx = crate::models::transaction::NewTransaction {
                 category_id: new_inst.category_id,
@@ -98,7 +97,9 @@ impl Installment {
                 date: tx_date,
                 description: tx_desc,
                 installment_id: Some(installment.id),
-                installment_number: Some(i),
+                installment_number: Some(
+                    InstallmentNumber::try_from(i).map_err(|e| crate::models::ModelError::BusinessLogic(e.into()))?,
+                ),
                 tags: vec![],
             };
 
@@ -113,7 +114,7 @@ impl Installment {
     pub async fn find_all(
         pool: &sqlx::PgPool,
         limit: Option<usize>,
-    ) -> Result<Vec<Self>, sqlx::Error> {
+    ) -> Result<Vec<Self>, crate::models::ModelError> {
         let limit = limit.unwrap_or(100) as i64;
         sqlx::query_as::<_, Self>(
             r#"
@@ -125,9 +126,10 @@ impl Installment {
         .bind(limit)
         .fetch_all(pool)
         .await
+        .map_err(Into::into)
     }
 
-    pub async fn find_by_id(pool: &sqlx::PgPool, id: i32) -> Result<Self, sqlx::Error> {
+    pub async fn find_by_id(pool: &sqlx::PgPool, id: i32) -> Result<Self, crate::models::ModelError> {
         sqlx::query_as::<_, Self>(
             r#"
             SELECT * FROM installments
@@ -137,9 +139,10 @@ impl Installment {
         .bind(id)
         .fetch_one(pool)
         .await
+        .map_err(Into::into)
     }
 
-    pub async fn delete(pool: &sqlx::PgPool, id: i32) -> Result<bool, sqlx::Error> {
+    pub async fn delete(pool: &sqlx::PgPool, id: i32) -> Result<bool, crate::models::ModelError> {
         let mut tx = pool.begin().await?;
 
         // Check if linked to PAID invoice
@@ -155,8 +158,8 @@ impl Installment {
         .await?;
 
         if paid_count > 0 {
-            return Err(sqlx::Error::Protocol(
-                "Cannot delete installment with closed/paid invoices.".into(),
+            return Err(crate::models::ModelError::BusinessLogic(
+                "Orçamento/Fatura correspondente a uma das parcelas já está fechado.".into(),
             ));
         }
 
@@ -177,9 +180,9 @@ impl Installment {
     pub async fn adjust(
         pool: &sqlx::PgPool,
         installment_id: i32,
-        number: i16,
+        number: InstallmentNumber,
         new_amount: PositiveAmount,
-    ) -> Result<crate::models::transaction::Transaction, sqlx::Error> {
+    ) -> Result<crate::models::transaction::Transaction, crate::models::ModelError> {
         let mut tx = pool.begin().await?;
 
         // Find transaction
@@ -187,13 +190,13 @@ impl Installment {
             r#"SELECT * FROM transactions WHERE installment_id = $1 AND installment_number = $2"#,
         )
         .bind(installment_id)
-        .bind(number)
+        .bind(number.get())
         .fetch_optional(&mut *tx)
         .await?;
 
         let old_tx = match old_tx {
             Some(t) => t,
-            None => return Err(sqlx::Error::RowNotFound),
+            None => return Err(crate::models::ModelError::NotFound),
         };
 
         if let Some(inv_id) = old_tx.invoice_id {
@@ -206,8 +209,8 @@ impl Installment {
             .await?;
 
             if status != crate::models::types::InvoiceStatus::Open {
-                return Err(sqlx::Error::Protocol(
-                    "Invoice closed/paid. Adjust blocked.".into(),
+                return Err(crate::models::ModelError::BusinessLogic(
+                    "Não é possível alterar uma parcela de uma fatura/orçamento fechado.".into(),
                 ));
             }
             // Invoice total is calculated on-the-fly.

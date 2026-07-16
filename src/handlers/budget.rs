@@ -6,6 +6,8 @@ use chrono::Local;
 pub enum BudgetError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
+    #[error("Model error: {0}")]
+    Model(#[from] crate::models::ModelError),
 }
 
 pub async fn add(

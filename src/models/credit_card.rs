@@ -9,8 +9,8 @@ pub struct CreditCard {
     pub account_id: i32,
     pub name: NonEmptyString,
     pub credit_limit: NonNegativeAmount,
-    pub billing_day: i16,
-    pub due_day: i16,
+    pub billing_day: super::types::DayOfMonth,
+    pub due_day: super::types::DayOfMonth,
     pub active: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -114,13 +114,9 @@ impl CreditCard {
     ) -> Result<rust_decimal::Decimal, sqlx::Error> {
         let row = sqlx::query!(
             r#"
-            SELECT COALESCE(SUM(
-                CASE 
-                    WHEN t.transaction_type = 'income' THEN -t.amount 
-                    ELSE t.amount 
-                END
-            ), 0) AS used
+            SELECT COALESCE(SUM(vt.expense_effect), 0) AS used
             FROM transactions t
+            INNER JOIN v_transaction_totals vt ON vt.transaction_id = t.id
             LEFT JOIN invoices i ON t.invoice_id = i.id
             WHERE t.credit_card_id = $1 
               AND (i.status IS NULL OR i.status != 'paid')

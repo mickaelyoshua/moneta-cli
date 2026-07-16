@@ -1,4 +1,5 @@
 use clap::Subcommand;
+use crate::models::types::{Month, Year};
 
 #[derive(thiserror::Error, Debug)]
 pub enum InvoiceError {
@@ -18,25 +19,25 @@ pub enum InvoiceCmd {
         #[arg(short, long)]
         credit_card_id: i32,
         #[arg(short, long)]
-        month: i16,
+        month: Month,
         #[arg(short, long)]
-        year: i16,
+        year: Year,
     },
     Reopen {
         #[arg(short, long)]
         credit_card_id: i32,
         #[arg(short, long)]
-        month: i16,
+        month: Month,
         #[arg(short, long)]
-        year: i16,
+        year: Year,
     },
     Pay {
         #[arg(short, long)]
         credit_card_id: i32,
         #[arg(short, long)]
-        month: i16,
+        month: Month,
         #[arg(short, long)]
-        year: i16,
+        year: Year,
         #[arg(short, long)]
         account_id: i32,
     },

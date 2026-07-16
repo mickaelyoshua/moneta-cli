@@ -2,13 +2,16 @@ pub mod account;
 pub mod budget;
 pub mod category;
 pub mod credit_card;
+pub mod error;
 pub mod installment;
 pub mod invoice;
+pub mod overview;
 pub mod recurrence;
 pub mod tag;
 pub mod transaction;
 pub mod types;
-pub mod overview;
+
+pub use error::ModelError;
 
 pub use account::Account;
 pub use category::Category;

@@ -69,14 +69,10 @@ impl Account {
     ) -> Result<AccountBalance, sqlx::Error> {
         let row = sqlx::query!(
             r#"
-            SELECT COALESCE(SUM(
-                CASE 
-                    WHEN transaction_type = 'income' THEN amount
-                    ELSE -amount
-                END
-            ), 0) AS balance
-            FROM transactions
-            WHERE account_id = $1 AND status = 'cleared'
+            SELECT COALESCE(SUM(vt.account_effect), 0) AS balance
+            FROM transactions t
+            INNER JOIN v_transaction_totals vt ON vt.transaction_id = t.id
+            WHERE t.account_id = $1 AND t.status = 'cleared'
             "#,
             account_id
         )

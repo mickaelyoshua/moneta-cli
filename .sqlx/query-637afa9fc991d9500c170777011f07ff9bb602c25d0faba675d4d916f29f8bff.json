@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT COALESCE(SUM(vt.expense_effect), 0) AS total\n            FROM transactions t\n            INNER JOIN v_transaction_totals vt ON vt.transaction_id = t.id\n            WHERE t.invoice_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "total",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "637afa9fc991d9500c170777011f07ff9bb602c25d0faba675d4d916f29f8bff"
+}

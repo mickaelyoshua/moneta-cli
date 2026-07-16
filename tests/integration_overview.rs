@@ -1,14 +1,8 @@
-use moneta_cli::{
-    context::AppContext,
-    db::Db,
-    handlers::overview::handle_overview,
-    models::{
-        account::Account,
-        types::{AccountType, NonEmptyString},
-    },
+use moneta_cli::models::{
+    account::Account,
+    types::AccountType,
 };
 use sqlx::PgPool;
-use std::str::FromStr;
 
 #[sqlx::test]
 async fn test_overview_handler(pool: PgPool) {

@@ -31,7 +31,10 @@ async fn test_tag_resolution_on_insert(pool: PgPool) {
         description: NonEmptyString::from_str("Test with tags").unwrap(),
         installment_id: None,
         installment_number: None,
-        tags: vec!["lazer".to_string(), "viagem".to_string()],
+        tags: vec![
+            moneta_cli::models::types::NonEmptyString::from_str("lazer").unwrap(),
+            moneta_cli::models::types::NonEmptyString::from_str("viagem").unwrap(),
+        ],
     };
 
     let mut db_tx = pool.begin().await.unwrap();
@@ -46,6 +49,6 @@ async fn test_tag_resolution_on_insert(pool: PgPool) {
     let saved_tx = all.into_iter().find(|t| t.id == tx.id).unwrap();
 
     assert_eq!(saved_tx.tags.len(), 2);
-    assert!(saved_tx.tags.contains(&"lazer".to_string()));
-    assert!(saved_tx.tags.contains(&"viagem".to_string()));
+    assert!(saved_tx.tags.contains(&moneta_cli::models::types::NonEmptyString::from_str("lazer").unwrap()));
+    assert!(saved_tx.tags.contains(&moneta_cli::models::types::NonEmptyString::from_str("viagem").unwrap()));
 }

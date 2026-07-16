@@ -22,4 +22,6 @@ pub enum AppError {
     Budget(#[from] crate::handlers::budget::BudgetError),
     #[error("Recurrence error: {0}")]
     Recurrence(#[from] crate::handlers::recurrence::RecurrenceError),
+    #[error("Model error: {0}")]
+    Model(#[from] crate::models::ModelError),
 }

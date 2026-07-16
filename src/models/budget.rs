@@ -29,10 +29,10 @@ impl Budget {
         tag_id: Option<i32>,
         amount_limit: PositiveAmount,
         period: BudgetPeriod,
-    ) -> Result<Self, sqlx::Error> {
+    ) -> Result<Self, crate::models::ModelError> {
         if category_id.is_none() && tag_id.is_none() {
-            return Err(sqlx::Error::Protocol(
-                "Budget must have category or tag.".into(),
+            return Err(crate::models::ModelError::BusinessLogic(
+                "Orçamento deve ter uma categoria ou tag associada.".into(),
             ));
         }
 
@@ -49,12 +49,13 @@ impl Budget {
         .bind(period)
         .fetch_one(pool)
         .await
+        .map_err(Into::into)
     }
 
     pub async fn list_with_spend(
         pool: &sqlx::PgPool,
         ref_date: NaiveDate,
-    ) -> Result<Vec<BudgetWithSpend>, sqlx::Error> {
+    ) -> Result<Vec<BudgetWithSpend>, crate::models::ModelError> {
         let budgets = sqlx::query_as::<_, Self>("SELECT * FROM budgets ORDER BY id")
             .fetch_all(pool)
             .await?;
@@ -76,20 +77,16 @@ impl Budget {
         &self,
         pool: &sqlx::PgPool,
         ref_date: NaiveDate,
-    ) -> Result<Decimal, sqlx::Error> {
+    ) -> Result<Decimal, crate::models::ModelError> {
         let (start, end) = self.period_bounds(ref_date);
 
         let sum: Option<Decimal> = if let Some(cat_id) = self.category_id {
             sqlx::query_scalar(
                 r#"
-                SELECT SUM(
-                    CASE 
-                        WHEN transaction_type = 'income' THEN -amount 
-                        ELSE amount 
-                    END
-                )
-                FROM transactions
-                WHERE category_id = $1 AND date >= $2 AND date <= $3 AND status = 'cleared'
+                SELECT SUM(vt.expense_effect)
+                FROM transactions t
+                INNER JOIN v_transaction_totals vt ON vt.transaction_id = t.id
+                WHERE t.category_id = $1 AND t.date >= $2 AND t.date <= $3 AND t.status = 'cleared'
                 "#,
             )
             .bind(cat_id)
@@ -100,13 +97,9 @@ impl Budget {
         } else if let Some(tag_id) = self.tag_id {
             sqlx::query_scalar(
                 r#"
-                SELECT SUM(
-                    CASE 
-                        WHEN t.transaction_type = 'income' THEN -t.amount 
-                        ELSE t.amount 
-                    END
-                )
+                SELECT SUM(vt.expense_effect)
                 FROM transactions t
+                INNER JOIN v_transaction_totals vt ON vt.transaction_id = t.id
                 INNER JOIN transaction_tags tt ON tt.transaction_id = t.id
                 WHERE tt.tag_id = $1 AND t.date >= $2 AND t.date <= $3 AND t.status = 'cleared'
                 "#,
@@ -123,7 +116,7 @@ impl Budget {
         Ok(sum.unwrap_or(Decimal::ZERO))
     }
 
-    pub async fn delete(pool: &sqlx::PgPool, id: i32) -> Result<(), sqlx::Error> {
+    pub async fn delete(pool: &sqlx::PgPool, id: i32) -> Result<(), crate::models::ModelError> {
         sqlx::query!("DELETE FROM budgets WHERE id = $1", id)
             .execute(pool)
             .await?;
@@ -139,18 +132,14 @@ impl Budget {
                 (start, end)
             }
             BudgetPeriod::Monthly => {
-                let start = NaiveDate::from_ymd_opt(date.year(), date.month(), 1).unwrap();
-                let next_month = if date.month() == 12 {
-                    NaiveDate::from_ymd_opt(date.year() + 1, 1, 1).unwrap()
-                } else {
-                    NaiveDate::from_ymd_opt(date.year(), date.month() + 1, 1).unwrap()
-                };
-                let end = next_month - chrono::Duration::days(1);
+                let start = NaiveDate::from_ymd_opt(date.year(), date.month(), 1)
+                    .expect("Day 1 is always valid");
+                let end = start + chrono::Months::new(1) - chrono::Duration::days(1);
                 (start, end)
             }
             BudgetPeriod::Yearly => {
-                let start = NaiveDate::from_ymd_opt(date.year(), 1, 1).unwrap();
-                let end = NaiveDate::from_ymd_opt(date.year(), 12, 31).unwrap();
+                let start = NaiveDate::from_ymd_opt(date.year(), 1, 1).expect("Jan 1 is always valid");
+                let end = NaiveDate::from_ymd_opt(date.year(), 12, 31).expect("Dec 31 is always valid");
                 (start, end)
             }
         }

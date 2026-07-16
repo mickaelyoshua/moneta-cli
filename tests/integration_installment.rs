@@ -6,7 +6,7 @@ use moneta_cli::models::installment::{Installment, NewInstallment};
 use moneta_cli::models::invoice::Invoice;
 use moneta_cli::models::transaction::Transaction;
 use moneta_cli::models::types::{
-    AccountType, CategoryType, DayOfMonth, NonEmptyString, NonNegativeAmount, PositiveAmount,
+    AccountType, CategoryType, DayOfMonth, InstallmentCount, InstallmentNumber, Month, Year, NonEmptyString, NonNegativeAmount, PositiveAmount,
 };
 use rust_decimal::Decimal;
 use sqlx::PgPool;
@@ -65,14 +65,14 @@ async fn test_installment_insert_math(pool: PgPool) {
             category_id: Some(ctg_id),
             description: NonEmptyString::from_str("Mouse").unwrap(),
             total_amount: PositiveAmount::from_str("10.00").unwrap(),
-            installments_count: 3,
+            installments_count: InstallmentCount::try_from(3).unwrap(),
             date: NaiveDate::from_ymd_opt(2026, 7, 20).unwrap(),
         },
     )
     .await
     .unwrap();
 
-    assert_eq!(inst.installments_count, 3);
+    assert_eq!(inst.installments_count.get(), 3);
     assert_eq!(
         inst.total_amount.as_decimal(),
         Decimal::from_str("10.00").unwrap()
@@ -90,7 +90,7 @@ async fn test_installment_insert_math(pool: PgPool) {
         txs[0].amount.as_decimal(),
         Decimal::from_str("3.33").unwrap()
     );
-    assert_eq!(txs[0].installment_number, Some(1));
+    assert_eq!(txs[0].installment_number, Some(InstallmentNumber::try_from(1).unwrap()));
     assert_eq!(txs[0].date, NaiveDate::from_ymd_opt(2026, 7, 20).unwrap());
 
     // Parcela 2
@@ -98,7 +98,7 @@ async fn test_installment_insert_math(pool: PgPool) {
         txs[1].amount.as_decimal(),
         Decimal::from_str("3.33").unwrap()
     );
-    assert_eq!(txs[1].installment_number, Some(2));
+    assert_eq!(txs[1].installment_number, Some(InstallmentNumber::try_from(2).unwrap()));
     assert_eq!(txs[1].date, NaiveDate::from_ymd_opt(2026, 8, 20).unwrap());
 
     // Parcela 3 (resto vai para a última)
@@ -106,7 +106,7 @@ async fn test_installment_insert_math(pool: PgPool) {
         txs[2].amount.as_decimal(),
         Decimal::from_str("3.34").unwrap()
     );
-    assert_eq!(txs[2].installment_number, Some(3));
+    assert_eq!(txs[2].installment_number, Some(InstallmentNumber::try_from(3).unwrap()));
     assert_eq!(txs[2].date, NaiveDate::from_ymd_opt(2026, 9, 20).unwrap());
 }
 
@@ -122,7 +122,7 @@ async fn test_installment_adjust_and_delete(pool: PgPool) {
             category_id: Some(ctg_id),
             description: NonEmptyString::from_str("Teste").unwrap(),
             total_amount: PositiveAmount::from_str("100.00").unwrap(),
-            installments_count: 2, // 50.00 e 50.00
+            installments_count: InstallmentCount::try_from(2).unwrap(), // 50.00 e 50.00
             date: NaiveDate::from_ymd_opt(2026, 7, 20).unwrap(),
         },
     )
@@ -133,7 +133,7 @@ async fn test_installment_adjust_and_delete(pool: PgPool) {
     let adjusted_tx = Installment::adjust(
         &pool,
         inst.id,
-        1,
+        InstallmentNumber::try_from(1).unwrap(),
         PositiveAmount::from_str("49.99").unwrap(),
     )
     .await
@@ -151,7 +151,7 @@ async fn test_installment_adjust_and_delete(pool: PgPool) {
     assert_eq!(current_total, Decimal::from_str("49.99").unwrap());
 
     // 2. Fechar a fatura da primeira parcela
-    Invoice::close(&pool, card_id, 7, 2026).await.unwrap();
+    Invoice::close(&pool, card_id, Month::try_from(7).unwrap(), Year::try_from(2026).unwrap()).await.unwrap();
 
     // 3. Tentar deletar o parcelamento (deve falhar pois a fatura 1 está fechada)
     let delete_result = Installment::delete(&pool, inst.id).await;
@@ -164,7 +164,7 @@ async fn test_installment_adjust_and_delete(pool: PgPool) {
     let adjust_result2 = Installment::adjust(
         &pool,
         inst.id,
-        1,
+        InstallmentNumber::try_from(1).unwrap(),
         PositiveAmount::from_str("40.00").unwrap(),
     )
     .await;
@@ -187,7 +187,7 @@ async fn test_installment_insert_math_edge_case(pool: PgPool) {
             category_id: Some(ctg_id),
             description: NonEmptyString::from_str("Bala").unwrap(),
             total_amount: PositiveAmount::from_str("0.05").unwrap(),
-            installments_count: 10,
+            installments_count: InstallmentCount::try_from(10).unwrap(),
             date: NaiveDate::from_ymd_opt(2026, 7, 20).unwrap(),
         },
     )
