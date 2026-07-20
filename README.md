@@ -61,26 +61,26 @@ Build release:
 cargo build --release
 ```
 
-Run via cargo (development):
+Run via compiled binary:
 ```bash
-cargo run -- <COMMAND> [OPTIONS]
+./target/debug/moneta-cli <COMMAND> [OPTIONS]
 ```
 
 ### Human Examples
 
 **Create Category:**
 ```bash
-cargo run -- category create --name "Food" --type "expense"
+./target/debug/moneta-cli category create --name "Food" --type "expense"
 ```
 
 **Create Account:**
 ```bash
-cargo run -- account create --name "Nubank"
+./target/debug/moneta-cli account create --name "Nubank"
 ```
 
 **Import CSV (Dry Run):**
 ```bash
-cargo run -- import --file transactions.csv --dry-run
+./target/debug/moneta-cli import --file transactions.csv --dry-run
 ```
 
 ### AI Examples
@@ -88,7 +88,7 @@ cargo run -- import --file transactions.csv --dry-run
 AI agents must use the global `--json` flag to receive structured output.
 
 ```bash
-cargo run -- --json transaction create \
+./target/debug/moneta-cli --json transaction create \
     --amount 45.00 \
     --date "2026-07-09" \
     --description "Ifood" \
