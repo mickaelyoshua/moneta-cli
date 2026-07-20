@@ -7,8 +7,10 @@ pub enum InstallmentCmd {
 
     /// Lists the installments
     List {
-        #[arg(long, short)]
+        #[arg(short, long)]
         limit: Option<usize>,
+        #[arg(short, long)]
+        offset: Option<usize>,
     },
 
     /// Shows details of an installment and its invoices
@@ -67,8 +69,8 @@ impl InstallmentCmd {
                 crate::commands::render_success(ctx, &res);
                 Ok(())
             }
-            Self::List { limit } => {
-                let res = crate::handlers::installment::list(ctx, limit).await?;
+            Self::List { limit, offset } => {
+                let res = crate::handlers::installment::list(ctx, limit, offset).await?;
                 crate::commands::render_success(ctx, &res);
                 Ok(())
             }

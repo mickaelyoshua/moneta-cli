@@ -33,7 +33,7 @@ pub async fn process_csv(
         });
     }
 
-    let all_txs = Transaction::find_all(&ctx.db.pool, Some(10000)).await?;
+    let all_txs = Transaction::find_all(&ctx.db.pool, Some(10000), None).await?;
     let to_insert = deduplicate_records(&parsed_records, &all_txs);
 
     let skipped = parsed_records.len() - to_insert.len();

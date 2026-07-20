@@ -61,7 +61,7 @@ async fn test_transaction_insert_and_find_all(pool: PgPool) {
     );
 
     // Action 2
-    let all = Transaction::find_all(&pool, None)
+    let all = Transaction::find_all(&pool, None, None)
         .await
         .expect("Failed to find_all");
 
@@ -124,6 +124,7 @@ async fn test_transaction_update_and_delete(pool: PgPool) {
         amount: Some(PositiveAmount::from_str("20.00").unwrap()),
         date: None,
         description: Some(NonEmptyString::from_str("Jantar").unwrap()),
+        tags: None,
     };
 
     let updated = Transaction::update(&mut db_tx, tx.id, payload)
@@ -190,7 +191,7 @@ async fn test_transaction_update_delete_constraints(pool: PgPool) {
     .await
     .unwrap();
 
-    let mut txs = Transaction::find_all(&pool, None).await.unwrap();
+    let mut txs = Transaction::find_all(&pool, None, None).await.unwrap();
     let inst_tx = txs.pop().unwrap();
 
     // Tentar atualizar
@@ -206,6 +207,7 @@ async fn test_transaction_update_delete_constraints(pool: PgPool) {
             transaction_type: None,
             date: None,
             description: None,
+            tags: None,
         },
     )
     .await;
@@ -271,6 +273,7 @@ async fn test_transaction_update_delete_constraints(pool: PgPool) {
             transaction_type: None,
             date: None,
             description: None,
+            tags: None,
         },
     )
     .await;

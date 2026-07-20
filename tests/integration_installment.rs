@@ -79,7 +79,7 @@ async fn test_installment_insert_math(pool: PgPool) {
     );
 
     // Verificar as transações geradas
-    let mut txs = Transaction::find_all(&pool, None).await.unwrap();
+    let mut txs = Transaction::find_all(&pool, None, None).await.unwrap();
     assert_eq!(txs.len(), 3);
 
     // Ordenar por data

@@ -117,16 +117,19 @@ impl Installment {
     pub async fn find_all(
         pool: &sqlx::PgPool,
         limit: Option<usize>,
+        offset: Option<usize>,
     ) -> Result<Vec<Self>, crate::models::ModelError> {
         let limit = limit.unwrap_or(100) as i64;
+        let offset = offset.unwrap_or(0) as i64;
         sqlx::query_as::<_, Self>(
             r#"
             SELECT * FROM installments
             ORDER BY created_at DESC
-            LIMIT $1
+            LIMIT $1 OFFSET $2
             "#,
         )
         .bind(limit)
+        .bind(offset)
         .fetch_all(pool)
         .await
         .map_err(Into::into)
@@ -165,7 +168,7 @@ impl Installment {
 
         if paid_count > 0 {
             return Err(crate::models::ModelError::BusinessLogic(
-                "Orçamento/Fatura correspondente a uma das parcelas já está fechado.".into(),
+                "Budget/Invoice corresponding to one of the installments is already closed/paid.".into(),
             ));
         }
 

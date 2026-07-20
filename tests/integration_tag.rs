@@ -43,7 +43,7 @@ async fn test_tag_resolution_on_insert(pool: PgPool) {
         .expect("Insert failed");
     db_tx.commit().await.unwrap();
 
-    let all = Transaction::find_all(&pool, None)
+    let all = Transaction::find_all(&pool, None, None)
         .await
         .expect("List failed");
     let saved_tx = all.into_iter().find(|t| t.id == tx.id).unwrap();

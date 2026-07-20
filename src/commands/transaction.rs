@@ -19,6 +19,8 @@ pub enum TransactionCmd {
     List {
         #[arg(short, long)]
         limit: Option<usize>,
+        #[arg(short, long)]
+        offset: Option<usize>,
     },
     Show {
         #[arg(short, long)]
@@ -92,6 +94,9 @@ pub struct UpdateTransactionArgs {
 
     #[arg(long)]
     pub description: Option<NonEmptyString>,
+
+    #[arg(long)]
+    pub tags: Option<String>,
 }
 
 impl TryFrom<AddTransactionArgs> for crate::models::transaction::NewTransaction {
@@ -140,8 +145,8 @@ impl TransactionCmd {
                 let res = crate::handlers::transaction::add(ctx, args).await?;
                 crate::commands::render_success(ctx, &res);
             }
-            Self::List { limit } => {
-                let res = crate::handlers::transaction::list(ctx, limit).await?;
+            Self::List { limit, offset } => {
+                let res = crate::handlers::transaction::list(ctx, limit, offset).await?;
                 crate::commands::render_success(ctx, &res);
             }
             Self::Show { id } => {

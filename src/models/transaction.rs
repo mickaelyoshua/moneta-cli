@@ -53,6 +53,7 @@ pub struct UpdateTransactionPayload {
     pub amount: Option<PositiveAmount>,
     pub date: Option<chrono::NaiveDate>,
     pub description: Option<NonEmptyString>,
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 impl Transaction {
@@ -114,15 +115,13 @@ impl Transaction {
 
         if !new_tx.tags.is_empty() {
             let tag_ids = crate::models::tag::Tag::resolve_names(&mut *conn, &new_tx.tags).await?;
-            for tag_id in tag_ids {
-                sqlx::query!(
-                    "INSERT INTO transaction_tags (transaction_id, tag_id) VALUES ($1, $2)",
-                    row.id,
-                    tag_id
-                )
-                .execute(&mut *conn)
-                .await?;
-            }
+            sqlx::query!(
+                "INSERT INTO transaction_tags (transaction_id, tag_id) SELECT $1, * FROM UNNEST($2::int[])",
+                row.id,
+                &tag_ids
+            )
+            .execute(&mut *conn)
+            .await?;
             row.tags = new_tx.tags;
         }
 
@@ -132,8 +131,10 @@ impl Transaction {
     pub async fn find_all(
         pool: &sqlx::PgPool,
         limit: Option<usize>,
+        offset: Option<usize>,
     ) -> Result<Vec<Self>, sqlx::Error> {
         let limit = limit.unwrap_or(50) as i64;
+        let offset = offset.unwrap_or(0) as i64;
         let rows = sqlx::query_as::<_, Transaction>(
             r#"
             SELECT t.*, COALESCE(array_agg(tg.name::TEXT) FILTER (WHERE tg.name IS NOT NULL), '{}') AS tags
@@ -142,10 +143,11 @@ impl Transaction {
             LEFT JOIN tags tg ON tg.id = tt.tag_id
             GROUP BY t.id
             ORDER BY t.date DESC, t.created_at DESC
-            LIMIT $1
+            LIMIT $1 OFFSET $2
             "#,
         )
         .bind(limit)
+        .bind(offset)
         .fetch_all(pool)
         .await?;
 
@@ -184,7 +186,7 @@ impl Transaction {
 
         if old_tx.installment_id.is_some() {
             return Err(crate::models::ModelError::BusinessLogic(
-                "Esta transação pertence a um parcelamento. Utilize 'moneta installment delete' para apagá-la.".into()
+                "This transaction belongs to an installment. Use 'moneta installment delete' to delete it.".into()
             ));
         }
 
@@ -231,7 +233,7 @@ impl Transaction {
 
         if old_tx.installment_id.is_some() {
             return Err(crate::models::ModelError::BusinessLogic(
-                "Esta transação pertence a um parcelamento. Utilize 'moneta installment adjust' para modificar o valor.".into()
+                "This transaction belongs to an installment. Use 'moneta installment adjust' to modify the amount.".into()
             ));
         }
 
@@ -312,6 +314,23 @@ impl Transaction {
         .fetch_one(&mut *db_tx)
         .await?;
 
+        if let Some(new_tags) = payload.tags {
+            sqlx::query!("DELETE FROM transaction_tags WHERE transaction_id = $1", id)
+                .execute(&mut *db_tx)
+                .await?;
+
+            if !new_tags.is_empty() {
+                let tag_ids = crate::models::tag::Tag::resolve_names(&mut *db_tx, &new_tags).await?;
+                sqlx::query!(
+                    "INSERT INTO transaction_tags (transaction_id, tag_id) SELECT $1, * FROM UNNEST($2::int[])",
+                    id,
+                    &tag_ids
+                )
+                .execute(&mut *db_tx)
+                .await?;
+            }
+        }
+
         db_tx.commit().await?;
 
         Ok(row)
@@ -330,7 +349,7 @@ impl<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> for Transaction {
             (None, Some(id)) => TransactionSource::CreditCard { credit_card_id: id },
             _ => {
                 return Err(sqlx::Error::Decode(
-                    "Transação deve pertencer a uma conta ou a um cartão de crédito.".into(),
+                    "Transaction must belong to an account or credit card.".into(),
                 ));
             }
         };

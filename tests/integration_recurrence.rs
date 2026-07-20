@@ -41,7 +41,7 @@ async fn test_recurrence_sync(pool: PgPool) {
 
     assert_eq!(inserted, 3);
 
-    let all = Transaction::find_all(&pool, None).await.unwrap();
+    let all = Transaction::find_all(&pool, None, None).await.unwrap();
     assert_eq!(all.len(), 3);
     assert!(all.iter().all(|t| t.recurrence_id == Some(rec.id)));
 
@@ -84,7 +84,7 @@ async fn test_recurrence_end_of_month_sync(pool: PgPool) {
 
     assert_eq!(inserted, 3);
 
-    let mut all = Transaction::find_all(&pool, None).await.unwrap();
+    let mut all = Transaction::find_all(&pool, None, None).await.unwrap();
     all.sort_by_key(|t| t.date);
 
     assert_eq!(all.len(), 3);

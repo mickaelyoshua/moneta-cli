@@ -17,8 +17,9 @@ pub async fn add(
 pub async fn list(
     ctx: &AppContext,
     limit: Option<usize>,
+    offset: Option<usize>,
 ) -> Result<Vec<Installment>, InstallmentError> {
-    let installments = Installment::find_all(&ctx.db.pool, limit).await?;
+    let installments = Installment::find_all(&ctx.db.pool, limit, offset).await?;
     Ok(installments)
 }
 

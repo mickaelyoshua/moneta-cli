@@ -15,8 +15,9 @@ pub async fn add(
 pub async fn list(
     ctx: &AppContext,
     limit: Option<usize>,
+    offset: Option<usize>,
 ) -> Result<Vec<Transaction>, TransactionError> {
-    let txs = Transaction::find_all(&ctx.db.pool, limit).await?;
+    let txs = Transaction::find_all(&ctx.db.pool, limit, offset).await?;
     Ok(txs)
 }
 
@@ -42,6 +43,11 @@ pub async fn update(
         amount: args.amount,
         date: args.date,
         description: args.description,
+        tags: args.tags.map(|t| {
+            t.split(',')
+                .filter_map(|s| s.trim().parse::<crate::models::types::NonEmptyString>().ok())
+                .collect()
+        }),
     };
 
     let mut conn = ctx.db.pool.acquire().await?;
