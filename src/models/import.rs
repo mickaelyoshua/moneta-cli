@@ -33,14 +33,14 @@ impl TryFrom<RawCsvRecord> for ParsedCsvRecord {
     type Error = String;
 
     fn try_from(raw: RawCsvRecord) -> Result<Self, Self::Error> {
-        let date =
-            NaiveDate::from_str(&raw.date).map_err(|_| format!("Data inválida: {}", raw.date))?;
+        let date = NaiveDate::from_str(&raw.date)
+            .map_err(|_| format!("Invalid date: {}", raw.date))?;
         let amount = PositiveAmount::from_str(&raw.amount)
-            .map_err(|_| format!("Valor inválido: {}", raw.amount))?;
+            .map_err(|_| format!("Invalid amount: {}", raw.amount))?;
         let description = NonEmptyString::from_str(&raw.description)
-            .map_err(|_| format!("Descrição vazia para: {}", raw.description))?;
+            .map_err(|_| format!("Empty description for: {}", raw.description))?;
         let category = NonEmptyString::from_str(&raw.category)
-            .map_err(|_| format!("Categoria vazia para: {}", raw.description))?;
+            .map_err(|_| format!("Empty category for: {}", raw.description))?;
 
         let tags = if raw.tags.trim().is_empty() {
             vec![]
@@ -56,24 +56,28 @@ impl TryFrom<RawCsvRecord> for ParsedCsvRecord {
         } else {
             let parts: Vec<&str> = raw.installments.split('/').collect();
             if parts.len() == 2 {
-                let current: i16 = parts[0].parse().unwrap_or(1);
-                let total: i16 = parts[1].parse().unwrap_or(1);
+                let current: i16 = parts[0]
+                    .parse()
+                    .map_err(|_| format!("Invalid current installment number: {}", parts[0]))?;
+                let total: i16 = parts[1]
+                    .parse()
+                    .map_err(|_| format!("Invalid total installments number: {}", parts[1]))?;
                 if current <= 0 || total <= 0 {
-                    return Err(format!("Parcela inválida: {}", raw.installments));
+                    return Err(format!("Invalid installment values: {}", raw.installments));
                 }
                 Some((current, total))
             } else {
                 return Err(format!(
-                    "Formato de parcela inválido (esperado x/y): {}",
+                    "Invalid installment format (expected x/y): {}",
                     raw.installments
                 ));
             }
         };
 
         let source_type = NonEmptyString::from_str(&raw.source_type)
-            .map_err(|_| format!("Tipo de origem inválido: {}", raw.source_type))?;
+            .map_err(|_| format!("Invalid source type: {}", raw.source_type))?;
         let source_name = NonEmptyString::from_str(&raw.source_name)
-            .map_err(|_| format!("Nome de origem vazio: {}", raw.source_name))?;
+            .map_err(|_| format!("Empty source name: {}", raw.source_name))?;
 
         Ok(ParsedCsvRecord {
             date,
