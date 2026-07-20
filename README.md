@@ -40,6 +40,11 @@ Designed for fast human use and as a backend/engine for AI Agents processing rec
 
 ## Build and Usage
 
+Run tests to ensure everything is working:
+```bash
+cargo test
+```
+
 Build release:
 ```bash
 cargo build --release
