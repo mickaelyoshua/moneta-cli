@@ -128,4 +128,19 @@ impl CreditCard {
 
         Ok(row.used.unwrap_or(rust_decimal::Decimal::ZERO))
     }
+
+    pub async fn find_by_name(
+        pool: &sqlx::PgPool,
+        name: &str,
+    ) -> Result<Option<Self>, sqlx::Error> {
+        sqlx::query_as::<_, Self>(
+            r#"
+            SELECT * FROM credit_cards
+            WHERE name = $1
+            "#,
+        )
+        .bind(name)
+        .fetch_optional(pool)
+        .await
+    }
 }

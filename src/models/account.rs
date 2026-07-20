@@ -128,4 +128,19 @@ impl Account {
 
         Ok(result.rows_affected() > 0)
     }
+
+    pub async fn find_by_name(
+        pool: &sqlx::PgPool,
+        name: &str,
+    ) -> Result<Option<Self>, sqlx::Error> {
+        sqlx::query_as::<_, Self>(
+            r#"
+            SELECT * FROM accounts
+            WHERE name = $1
+            "#,
+        )
+        .bind(name)
+        .fetch_optional(pool)
+        .await
+    }
 }

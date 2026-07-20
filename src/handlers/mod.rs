@@ -7,3 +7,4 @@ pub mod invoice;
 pub mod overview;
 pub mod recurrence;
 pub mod transaction;
+pub mod import;

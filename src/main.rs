@@ -25,6 +25,7 @@ async fn run() -> Result<(), moneta_cli::error::AppError> {
         Command::Budget { .. } => "Budget",
         Command::Recurrence { .. } => "Recurrence",
         Command::Overview(_) => "Overview",
+        Command::Import(_) => "Import",
     };
 
     tracing::info!("Starting command flow: {}", command_name);
@@ -39,6 +40,7 @@ async fn run() -> Result<(), moneta_cli::error::AppError> {
         Command::Budget { action } => action.handle(&ctx).await?,
         Command::Recurrence { action } => action.handle(&ctx).await?,
         Command::Overview(cmd) => cmd.handle(&ctx).await?,
+        Command::Import(cmd) => cmd.handle(&ctx).await?,
     }
 
     Ok(())

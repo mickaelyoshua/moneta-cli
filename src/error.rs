@@ -24,4 +24,6 @@ pub enum AppError {
     Recurrence(#[from] crate::handlers::recurrence::RecurrenceError),
     #[error("Model error: {0}")]
     Model(#[from] crate::models::ModelError),
+    #[error("Import error: {0}")]
+    Import(#[from] crate::commands::import::ImportError),
 }

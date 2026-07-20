@@ -235,7 +235,6 @@ impl Transaction {
             ));
         }
 
-        // Validação da Invoice Original
         if let Some(inv_id) = old_tx.invoice_id {
             let status = sqlx::query_scalar::<_, crate::models::types::InvoiceStatus>(
                 "SELECT status FROM invoices WHERE id = $1",
@@ -274,7 +273,7 @@ impl Transaction {
         // Se o destino for Cartão, temos que achar a Invoice alvo e verificar se está aberta
         if let Some(cc_id) = next_credit_card_id {
             let invoice = crate::models::invoice::Invoice::find_or_create_for_date(
-                &mut *db_tx, cc_id, next_date,
+                &mut db_tx, cc_id, next_date,
             )
             .await?;
             if invoice.status != crate::models::types::InvoiceStatus::Open {

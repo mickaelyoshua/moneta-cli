@@ -138,8 +138,10 @@ impl Budget {
                 (start, end)
             }
             BudgetPeriod::Yearly => {
-                let start = NaiveDate::from_ymd_opt(date.year(), 1, 1).expect("Jan 1 is always valid");
-                let end = NaiveDate::from_ymd_opt(date.year(), 12, 31).expect("Dec 31 is always valid");
+                let start =
+                    NaiveDate::from_ymd_opt(date.year(), 1, 1).expect("Jan 1 is always valid");
+                let end =
+                    NaiveDate::from_ymd_opt(date.year(), 12, 31).expect("Dec 31 is always valid");
                 (start, end)
             }
         }

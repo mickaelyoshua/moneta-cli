@@ -102,4 +102,30 @@ impl Category {
 
         Ok(result.rows_affected() > 0)
     }
+
+    pub async fn find_or_create(pool: &sqlx::PgPool, name: &str) -> Result<Self, sqlx::Error> {
+        let existing = sqlx::query_as!(
+            Self,
+            r#"SELECT id, name as "name: _", category_type as "category_type: _", active, created_at, updated_at FROM categories WHERE name = $1"#,
+            name
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        if let Some(cat) = existing {
+            return Ok(cat);
+        }
+
+        sqlx::query_as!(
+            Self,
+            r#"
+            INSERT INTO categories (name, category_type)
+            VALUES ($1, 'expense')
+            RETURNING id, name as "name: _", category_type as "category_type: _", active, created_at, updated_at
+            "#,
+            name
+        )
+        .fetch_one(pool)
+        .await
+    }
 }

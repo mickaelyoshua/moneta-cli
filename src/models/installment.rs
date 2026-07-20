@@ -74,9 +74,11 @@ impl Installment {
         for i in 1..=new_inst.installments_count.get() {
             let tx_date = new_inst.date + chrono::Months::new((i - 1) as u32);
             let tx_amount = if i == new_inst.installments_count.get() {
-                PositiveAmount::try_from(last_amount).map_err(|e| crate::models::ModelError::BusinessLogic(e.into()))?
+                PositiveAmount::try_from(last_amount)
+                    .map_err(|e| crate::models::ModelError::BusinessLogic(e.into()))?
             } else {
-                PositiveAmount::try_from(base_amount).map_err(|e| crate::models::ModelError::BusinessLogic(e.into()))?
+                PositiveAmount::try_from(base_amount)
+                    .map_err(|e| crate::models::ModelError::BusinessLogic(e.into()))?
             };
 
             let tx_desc = NonEmptyString::from_str(&format!(
@@ -98,7 +100,8 @@ impl Installment {
                 description: tx_desc,
                 installment_id: Some(installment.id),
                 installment_number: Some(
-                    InstallmentNumber::try_from(i).map_err(|e| crate::models::ModelError::BusinessLogic(e.into()))?,
+                    InstallmentNumber::try_from(i)
+                        .map_err(|e| crate::models::ModelError::BusinessLogic(e.into()))?,
                 ),
                 tags: vec![],
             };
@@ -129,7 +132,10 @@ impl Installment {
         .map_err(Into::into)
     }
 
-    pub async fn find_by_id(pool: &sqlx::PgPool, id: i32) -> Result<Self, crate::models::ModelError> {
+    pub async fn find_by_id(
+        pool: &sqlx::PgPool,
+        id: i32,
+    ) -> Result<Self, crate::models::ModelError> {
         sqlx::query_as::<_, Self>(
             r#"
             SELECT * FROM installments
@@ -231,5 +237,38 @@ impl Installment {
 
         tx.commit().await?;
         Ok(updated_tx)
+    }
+
+    pub async fn find_or_create_for_import(
+        pool: &sqlx::PgPool,
+        credit_card_id: i32,
+        category_id: Option<i32>,
+        description: NonEmptyString,
+        total_amount: PositiveAmount,
+        installments_count: InstallmentCount,
+        original_date: NaiveDate,
+    ) -> Result<Self, crate::models::ModelError> {
+        let exists = sqlx::query_as::<_, Self>(
+            r#"SELECT * FROM installments WHERE credit_card_id = $1 AND description = $2 AND total_amount = $3"#
+        )
+        .bind(credit_card_id)
+        .bind(description.as_str())
+        .bind(total_amount.as_decimal())
+        .fetch_optional(pool)
+        .await?;
+
+        if let Some(inst) = exists {
+            return Ok(inst);
+        }
+
+        let new_inst = NewInstallment {
+            credit_card_id,
+            category_id,
+            description,
+            total_amount,
+            installments_count,
+            date: original_date,
+        };
+        Self::insert(pool, new_inst).await
     }
 }
