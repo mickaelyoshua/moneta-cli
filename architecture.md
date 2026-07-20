@@ -43,7 +43,7 @@ flowchart TD
 
   subgraph Core["Core (Rust)"]
     direction TB
-    Cmd["Command Handlers"]
+    Cmd["Command Handlers\n(Overview, Import, etc)"]
     Tx["Transactions Logic"]
     Entities["Entities\n(Accounts, Categories, Tags)"]
   end

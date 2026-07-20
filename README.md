@@ -1,68 +1,75 @@
 # Moneta CLI
 
-CLI em Rust para gestão de finanças pessoais via PostgreSQL.
-Projetado tanto para uso humano rápido quanto como backend/engine para Agentes de IA que processam recibos e faturas.
+Rust CLI for personal finance management via PostgreSQL.
+Designed for fast human use and as a backend/engine for AI Agents processing receipts and invoices.
 
-## Funcionalidades
+## Features
 
-- **Contas e Cartões:** Gestão de múltiplas contas e cartões de crédito.
-- **Transações Unificadas:** Despesas, receitas e transferências (`transaction`).
-- **Agrupamento:** Parcelamentos (`installment`), Faturas (`invoice`), e Transações Recorrentes (`recurrence`).
-- **Classificação:** Categorias estritas (`category`) e tags flexíveis (`tag`).
-- **Orçamentos:** Limites de gastos por categoria/tag (`budget`).
-- **AI-Ready:** Suporte nativo a output `--json` para ser consumido por IAs externas.
+- **Accounts & Cards:** Manage multiple accounts and credit cards (`account`, `credit_card`).
+- **Unified Transactions:** Expenses, incomes, and transfers (`transaction`).
+- **Grouping:** Installments (`installment`), Invoices (`invoice`), and Recurrent Transactions (`recurrence`).
+- **Classification:** Strict categories (`category`) and flexible tags (`tag`).
+- **Budgets:** Spending limits by category/tag (`budget`).
+- **Import:** Bulk import transactions from CSV (`import`).
+- **Overview:** Consolidated financial status report (`overview`).
+- **AI-Ready:** Native support for `--json` output to be consumed by external AIs.
 
-## Pré-requisitos
+## Prerequisites
 
 - [Rust](https://rustup.rs/) (cargo)
 - PostgreSQL
 - [sqlx-cli](https://crates.io/crates/sqlx-cli) (`cargo install sqlx-cli`)
 
-## Setup Local
+## Local Setup
 
-1. Suba o banco de dados via Docker:
+1. Spin up the database via Docker:
    ```bash
    docker-compose up -d
    ```
 
-2. Crie e rode as migrations:
+2. Create and run migrations:
    ```bash
    sqlx database create
    sqlx migrate run
    ```
 
-3. (Opcional) Copie as configurações:
+3. (Optional) Copy configuration:
    ```bash
    cp config.example.toml config.toml
    ```
 
-## Compilação e Uso
+## Build and Usage
 
-Para buildar em release:
+Build release:
 ```bash
 cargo build --release
 ```
 
-Para rodar comandos via cargo (desenvolvimento):
+Run via cargo (development):
 ```bash
 cargo run -- <COMMAND> [OPTIONS]
 ```
 
-### Exemplos Humanos
+### Human Examples
 
-**Criar uma Categoria:**
+**Create Category:**
 ```bash
-cargo run -- category create --name "Alimentação" --type "expense"
+cargo run -- category create --name "Food" --type "expense"
 ```
 
-**Criar uma Conta:**
+**Create Account:**
 ```bash
 cargo run -- account create --name "Nubank"
 ```
 
-### Exemplos para IA
+**Import CSV (Dry Run):**
+```bash
+cargo run -- import --file transactions.csv --dry-run
+```
 
-Agentes de IA devem utilizar a flag global `--json` para receber output estruturado.
+### AI Examples
+
+AI agents must use the global `--json` flag to receive structured output.
 
 ```bash
 cargo run -- --json transaction create \
@@ -74,7 +81,7 @@ cargo run -- --json transaction create \
     --type expense
 ```
 
-## Arquitetura e IA
+## Architecture and AI
 
-- Para detalhes da arquitetura, veja [architecture.md](architecture.md).
-- Para como IAs devem interagir com a CLI, veja [AGENTS.md](AGENTS.md).
+- For architecture details, see [architecture.md](architecture.md).
+- For AI interaction guidelines, see [AGENTS.md](AGENTS.md).
