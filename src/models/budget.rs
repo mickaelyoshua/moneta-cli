@@ -147,3 +147,55 @@ impl Budget {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn dummy_budget(period: BudgetPeriod) -> Budget {
+        Budget {
+            id: 1,
+            category_id: Some(1),
+            tag_id: None,
+            amount_limit: PositiveAmount::try_from(rust_decimal::Decimal::new(100, 0)).unwrap(),
+            period,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    #[test]
+    fn test_period_bounds_weekly() {
+        let budget = dummy_budget(BudgetPeriod::Weekly);
+        // Wednesday, Jan 18, 2023. Monday is Jan 16, Sunday is Jan 22.
+        let date = NaiveDate::from_ymd_opt(2023, 1, 18).unwrap();
+        let (start, end) = budget.period_bounds(date);
+        assert_eq!(start, NaiveDate::from_ymd_opt(2023, 1, 16).unwrap());
+        assert_eq!(end, NaiveDate::from_ymd_opt(2023, 1, 22).unwrap());
+    }
+
+    #[test]
+    fn test_period_bounds_monthly() {
+        let budget = dummy_budget(BudgetPeriod::Monthly);
+        // Jan 18, 2023 -> Jan 1 to Jan 31
+        let date = NaiveDate::from_ymd_opt(2023, 1, 18).unwrap();
+        let (start, end) = budget.period_bounds(date);
+        assert_eq!(start, NaiveDate::from_ymd_opt(2023, 1, 1).unwrap());
+        assert_eq!(end, NaiveDate::from_ymd_opt(2023, 1, 31).unwrap());
+        
+        // Leap year: Feb 15, 2024 -> Feb 1 to Feb 29
+        let date_leap = NaiveDate::from_ymd_opt(2024, 2, 15).unwrap();
+        let (start_leap, end_leap) = budget.period_bounds(date_leap);
+        assert_eq!(start_leap, NaiveDate::from_ymd_opt(2024, 2, 1).unwrap());
+        assert_eq!(end_leap, NaiveDate::from_ymd_opt(2024, 2, 29).unwrap());
+    }
+
+    #[test]
+    fn test_period_bounds_yearly() {
+        let budget = dummy_budget(BudgetPeriod::Yearly);
+        let date = NaiveDate::from_ymd_opt(2023, 5, 15).unwrap();
+        let (start, end) = budget.period_bounds(date);
+        assert_eq!(start, NaiveDate::from_ymd_opt(2023, 1, 1).unwrap());
+        assert_eq!(end, NaiveDate::from_ymd_opt(2023, 12, 31).unwrap());
+    }
+}

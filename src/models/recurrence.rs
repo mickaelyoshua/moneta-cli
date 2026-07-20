@@ -297,3 +297,69 @@ impl<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> for Recurrence {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn dummy_recurrence(frequency: RecurrenceFrequency, start_date: NaiveDate) -> Recurrence {
+        Recurrence {
+            id: 1,
+            category_id: 1,
+            source: TransactionSource::Account { account_id: 1 },
+            transaction_type: TransactionType::Expense,
+            amount: PositiveAmount::try_from(rust_decimal::Decimal::new(100, 0)).unwrap(),
+            description: std::str::FromStr::from_str("Test").unwrap(),
+            frequency,
+            start_date,
+            end_date: None,
+            last_processed_date: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    #[test]
+    fn test_next_date_daily() {
+        let start = NaiveDate::from_ymd_opt(2023, 1, 1).unwrap();
+        let rec = dummy_recurrence(RecurrenceFrequency::Daily, start);
+        assert_eq!(rec.next_date(start), NaiveDate::from_ymd_opt(2023, 1, 2).unwrap());
+    }
+
+    #[test]
+    fn test_next_date_weekly() {
+        let start = NaiveDate::from_ymd_opt(2023, 1, 1).unwrap();
+        let rec = dummy_recurrence(RecurrenceFrequency::Weekly, start);
+        assert_eq!(rec.next_date(start), NaiveDate::from_ymd_opt(2023, 1, 8).unwrap());
+    }
+
+    #[test]
+    fn test_next_date_monthly() {
+        let start = NaiveDate::from_ymd_opt(2023, 1, 15).unwrap();
+        let rec = dummy_recurrence(RecurrenceFrequency::Monthly, start);
+        assert_eq!(rec.next_date(start), NaiveDate::from_ymd_opt(2023, 2, 15).unwrap());
+        
+        let from_dec = NaiveDate::from_ymd_opt(2023, 12, 15).unwrap();
+        assert_eq!(rec.next_date(from_dec), NaiveDate::from_ymd_opt(2024, 1, 15).unwrap());
+    }
+
+    #[test]
+    fn test_next_date_monthly_edge_cases() {
+        // Start date is 31st, next month has 28 days
+        let start = NaiveDate::from_ymd_opt(2023, 1, 31).unwrap();
+        let rec = dummy_recurrence(RecurrenceFrequency::Monthly, start);
+        assert_eq!(rec.next_date(start), NaiveDate::from_ymd_opt(2023, 2, 28).unwrap());
+        
+        // Leap year
+        let start_leap = NaiveDate::from_ymd_opt(2024, 1, 31).unwrap();
+        let rec_leap = dummy_recurrence(RecurrenceFrequency::Monthly, start_leap);
+        assert_eq!(rec_leap.next_date(start_leap), NaiveDate::from_ymd_opt(2024, 2, 29).unwrap());
+    }
+
+    #[test]
+    fn test_next_date_yearly() {
+        let start = NaiveDate::from_ymd_opt(2023, 2, 28).unwrap();
+        let rec = dummy_recurrence(RecurrenceFrequency::Yearly, start);
+        assert_eq!(rec.next_date(start), NaiveDate::from_ymd_opt(2024, 2, 28).unwrap());
+    }
+}
