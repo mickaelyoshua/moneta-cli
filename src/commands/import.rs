@@ -17,12 +17,12 @@ pub enum ImportError {
 
 #[derive(Debug, Parser)]
 pub struct ImportCommand {
-    #[arg(help = "Caminho para o arquivo CSV de transações a ser importado")]
+    #[arg(help = "Path to the transactions CSV file to be imported")]
     pub file: std::path::PathBuf,
 
     #[arg(
         long,
-        help = "Apenas exibe as ações a serem feitas, sem alterar o banco de dados"
+        help = "Only displays the actions to be performed, without changing the database"
     )]
     pub dry_run: bool,
 }

@@ -1,7 +1,7 @@
 use rust_decimal::Decimal;
 use serde::{Deserialize, Deserializer, Serialize};
 
-// Parse, don't Validade
+// Parse, don't Validate
 // Creates this boilerplate, but I find it worth the work
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]

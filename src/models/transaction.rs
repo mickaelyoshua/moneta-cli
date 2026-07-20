@@ -80,7 +80,7 @@ impl Transaction {
 
                 if invoice.status != crate::models::types::InvoiceStatus::Open {
                     return Err(crate::models::ModelError::BusinessLogic(
-                        "Não é possível adicionar transação a uma fatura fechada ou paga."
+                        "Cannot add transaction to a closed or paid invoice."
                             .to_string(),
                     ));
                 }
@@ -198,7 +198,7 @@ impl Transaction {
 
             if status != crate::models::types::InvoiceStatus::Open {
                 return Err(crate::models::ModelError::BusinessLogic(
-                    "Não é possível deletar transação de uma fatura fechada ou paga.".into(),
+                    "Cannot delete transaction of a closed or paid invoice.".into(),
                 ));
             }
         }
@@ -245,7 +245,7 @@ impl Transaction {
 
             if status != crate::models::types::InvoiceStatus::Open {
                 return Err(crate::models::ModelError::BusinessLogic(
-                    "Não é possível alterar transação de uma fatura fechada ou paga.".into(),
+                    "Cannot change transaction of a closed or paid invoice.".into(),
                 ));
             }
         }
@@ -270,7 +270,7 @@ impl Transaction {
         let next_date = payload.date.unwrap_or(old_tx.date);
         let mut next_invoice_id = None;
 
-        // Se o destino for Cartão, temos que achar a Invoice alvo e verificar se está aberta
+        // If the destination is a Credit Card, we must find the target Invoice and check if it is open
         if let Some(cc_id) = next_credit_card_id {
             let invoice = crate::models::invoice::Invoice::find_or_create_for_date(
                 &mut db_tx, cc_id, next_date,
@@ -278,7 +278,7 @@ impl Transaction {
             .await?;
             if invoice.status != crate::models::types::InvoiceStatus::Open {
                 return Err(crate::models::ModelError::BusinessLogic(
-                    "A fatura de destino já está fechada ou paga.".into(),
+                    "The target invoice is already closed or paid.".into(),
                 ));
             }
             next_invoice_id = Some(invoice.id);

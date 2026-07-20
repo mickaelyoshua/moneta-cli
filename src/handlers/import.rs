@@ -144,7 +144,7 @@ async fn resolve_source(
             })
         } else {
             Err(ImportError::Handler(format!(
-                "Cartão não encontrado: {}",
+                "Credit card not found: {}",
                 sname
             )))
         }

@@ -216,7 +216,7 @@ impl Installment {
 
             if status != crate::models::types::InvoiceStatus::Open {
                 return Err(crate::models::ModelError::BusinessLogic(
-                    "Não é possível alterar uma parcela de uma fatura/orçamento fechado.".into(),
+                    "Cannot change an installment of a closed invoice/budget.".into(),
                 ));
             }
             // Invoice total is calculated on-the-fly.
