@@ -20,22 +20,33 @@ Designed for fast human use and as a backend/engine for AI Agents processing rec
 - PostgreSQL
 - [sqlx-cli](https://crates.io/crates/sqlx-cli) (`cargo install sqlx-cli`)
 
-## Local Setup
+## Production Setup
 
-1. Spin up the database via Docker:
+Moneta CLI runs in production using the database configured in `config.toml`.
+
+1. Ensure your configuration file has the production database credentials:
+   ```bash
+   cp config.example.toml config.toml
+   # Edit config.toml to include the production database_url
+   ```
+
+2. The application will automatically connect to the configured production database and run embedded migrations on startup.
+
+## Development & Testing Setup
+
+For local development and testing, use the Docker container to isolate the environment and avoid affecting production data.
+
+1. Spin up the local database via Docker:
    ```bash
    docker-compose up -d
    ```
 
-2. Create and run migrations:
+2. Ensure your local `config.toml` or `.env` points to the local Docker database (e.g., `postgres://moneta:101010@localhost:5432/moneta`).
+
+3. Create and run migrations locally:
    ```bash
    sqlx database create
    sqlx migrate run
-   ```
-
-3. (Optional) Copy configuration:
-   ```bash
-   cp config.example.toml config.toml
    ```
 
 ## Build and Usage
