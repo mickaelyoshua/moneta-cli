@@ -65,7 +65,7 @@ async fn test_integration_import_csv(pool: PgPool) {
 
     // 4. Verify DB
     let txs = moneta_cli::models::transaction::Transaction::find_all(&pool, None, None).await.unwrap();
-    let installs = moneta_cli::models::installment::Installment::find_all(&pool, None).await.unwrap();
+    let installs = moneta_cli::models::installment::Installment::find_all(&pool, None, None).await.unwrap();
     
     // Cleanup
     let _ = std::fs::remove_file(temp_path);
