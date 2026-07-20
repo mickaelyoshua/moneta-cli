@@ -32,7 +32,7 @@ impl Budget {
     ) -> Result<Self, crate::models::ModelError> {
         if category_id.is_none() && tag_id.is_none() {
             return Err(crate::models::ModelError::BusinessLogic(
-                "Orçamento deve ter uma categoria ou tag associada.".into(),
+                "Budget must have an associated category or tag.".into(),
             ));
         }
 
