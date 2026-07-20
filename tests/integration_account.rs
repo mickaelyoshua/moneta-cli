@@ -4,29 +4,18 @@ use std::str::FromStr;
 
 #[sqlx::test]
 async fn test_account_crud(pool: PgPool) {
-    let name = "Test Account";
-    let account_type = moneta_cli::models::types::AccountType::Checking;
-    let has_debit_card = true;
-    let active = true;
-
-    // Simulate insert
-    let account = sqlx::query_as::<_, Account>(
-        r#"
-        INSERT INTO accounts (name, account_type, has_debit_card, active)
-        VALUES ($1, $2, $3, $4)
-        RETURNING *
-        "#,
-    )
-    .bind(name)
-    .bind(account_type)
-    .bind(has_debit_card)
-    .bind(active)
-    .fetch_one(&pool)
-    .await
-    .expect("Failed to insert account");
+    let new_acc = moneta_cli::models::account::NewAccount {
+        name: moneta_cli::models::types::NonEmptyString::from_str("Test Account").unwrap(),
+        account_type: moneta_cli::models::types::AccountType::Checking,
+        has_debit_card: true,
+        active: true,
+    };
+    let account = Account::insert(&pool, new_acc)
+        .await
+        .expect("Failed to insert account");
 
     assert_eq!(account.name.as_str(), "Test Account");
-    assert_eq!(account.account_type, account_type);
+    assert_eq!(account.account_type, moneta_cli::models::types::AccountType::Checking);
     assert!(account.has_debit_card);
     assert!(account.active);
 

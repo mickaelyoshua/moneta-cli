@@ -77,7 +77,7 @@ async fn test_recurrence_end_of_month_sync(pool: PgPool) {
         end_date: None,
     };
 
-    let rec = Recurrence::insert(&pool, new_rec).await.unwrap();
+    let _rec = Recurrence::insert(&pool, new_rec).await.unwrap();
 
     let ref_date = chrono::NaiveDate::from_ymd_opt(2023, 4, 1).unwrap();
     let inserted = Recurrence::sync_all(&pool, ref_date).await.unwrap();

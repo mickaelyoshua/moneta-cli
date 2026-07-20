@@ -28,7 +28,7 @@ async fn test_integration_import_csv(pool: PgPool) {
     .await
     .unwrap();
 
-    let cc = CreditCard::insert(
+    let _cc = CreditCard::insert(
         &pool,
         NewCreditCard {
             account_id: acc.id,
