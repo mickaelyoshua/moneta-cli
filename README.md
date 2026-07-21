@@ -25,6 +25,7 @@ Designed for fast human use and as a backend/engine for AI Agents processing rec
 Moneta CLI runs in production using the database configured in `config.toml`.
 
 1. Ensure your configuration file has the production database credentials:
+
    ```bash
    cp config.example.toml config.toml
    # Edit config.toml to include the production database_url
@@ -37,6 +38,7 @@ Moneta CLI runs in production using the database configured in `config.toml`.
 For local development and testing, use the Docker container to isolate the environment and avoid affecting production data.
 
 1. Spin up the local database via Docker:
+
    ```bash
    docker-compose up -d
    ```
@@ -52,16 +54,19 @@ For local development and testing, use the Docker container to isolate the envir
 ## Build and Usage
 
 Run tests to ensure everything is working:
+
 ```bash
 cargo test
 ```
 
 Build release:
+
 ```bash
 cargo build --release
 ```
 
 Run via compiled binary:
+
 ```bash
 ./target/debug/moneta-cli <COMMAND> [OPTIONS]
 ```
@@ -69,16 +74,19 @@ Run via compiled binary:
 ### Human Examples
 
 **Create Category:**
+
 ```bash
 ./target/debug/moneta-cli category create --name "Food" --type "expense"
 ```
 
 **Create Account:**
+
 ```bash
 ./target/debug/moneta-cli account create --name "Nubank"
 ```
 
 **Import CSV (Dry Run):**
+
 ```bash
 ./target/debug/moneta-cli import --file transactions.csv --dry-run
 ```
@@ -100,4 +108,4 @@ AI agents must use the global `--json` flag to receive structured output.
 ## Architecture and AI
 
 - For architecture details, see [architecture.md](architecture.md).
-- For AI interaction guidelines, see [AGENTS.md](AGENTS.md).
+- For AI interaction guidelines, see [AI_MAPPING.md](AI_MAPPING.md).
